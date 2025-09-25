@@ -1,30 +1,69 @@
 {
   "expo": {
-    "name": "react-native-panel-inyection",
-    "slug": "react-native-panel-inyection",
+    "name": "Kiosco Interactivo",
+    "slug": "Kiosco Interactivo",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "orientation": "landscape",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.inoac.kioscointeractivo",
+      "icon": {
+        "light": "./assets/images/logos/icon-variant-light.png",
+        "dark": "./assets/images/logos/icon-variant-transparent.png",
+        "tinted": "./assets/images/logos/icon-variant-transparent.png"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/logos/adaptive-icon.png",
+        "monochromeImage": "./assets/images/logos/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "pan",
+      "package": "com.inoac.kioscointeractivo"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": [
+      "expo-font",
+      "react-native-bottom-tabs",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          },
+          "ios": {
+            "useFrameworks": "static",
+            "deploymentTarget": "17.6",
+            "buildReactNativeFromSource": true
+          }
+        }
+      ],
+      [
+        "react-native-edge-to-edge",
+        {
+          "android": {
+            "parentTheme": "Material3",
+            "enforceNavigationBarContrast": false
+          }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/images/logos/icon-variant-transparent.png",
+          "resizeMode": "contain",
+          "imageWidth": 200,
+          "dark": {
+            "image": "./assets/images/logos/icon-variant-transparent.png",
+            "backgroundColor": "#000000"
+          }
+        }
+      ]
+    ]
   }
 }
