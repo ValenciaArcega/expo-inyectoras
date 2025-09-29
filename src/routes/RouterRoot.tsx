@@ -1,16 +1,20 @@
 
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import ControlPanel from '@core/ControlPanel';
+import ControlCenter from '@core/ControlCenter';
+import Calendar from '@core/Calendar';
 
 const Stack = createNativeStackNavigator();
 
-const RouterRoot = function () {
+const Router = function () {
 	return <Stack.Navigator>
 		<Stack.Screen
-			name='ControlPanel'
-			component={ControlPanel}
+			name='ControlCenter'
+			component={ControlCenter}
 		/>
-	</Stack.Navigator>;
-};
-
-export default RouterRoot;
+		<Stack.Screen
+			name='Calendar'
+			component={Calendar}
+		/>
+	</Stack.Navigator>
+}
+export default Router
