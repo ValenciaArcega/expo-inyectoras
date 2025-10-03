@@ -1,700 +1,482 @@
-// // import { View } from "react-native"
-
-// // const Calendar = function(){
-// //     return <View>
-
-// //     </View>
-// // }
-// // export default Calendar;
-
-// //1 columna de das con scrolling
-// import React from "react";
-// import { View, Text, FlatList, StyleSheet } from "react-native";
-
-// const Calendar = () => {
-//   const today = new Date();
-//   const currentDay = today.getDate();
-//   const currentMonth = today.getMonth();
-//   const currentYear = today.getFullYear();
-
-// //   días del mes
-//   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-//   const daysArray = Array.from({ length: daysInMonth }, (_, i) => {
-//     const date = new Date(currentYear, currentMonth, i + 1);
-//     const dayOfWeek = date.toLocaleDateString("es-MX", { weekday: "short" });
-//     return { dayOfWeek, date: i + 1 };
-//   });
-
-//   return (
-//     <View style={styles.container}>
-//       <FlatList
-//         data={daysArray}
-//         horizontal
-//         keyExtractor={(item) => item.date.toString()}
-//         renderItem={({ item }) => (
-//           <View
-//             style={[
-//               styles.dayBox,
-//               item.date === currentDay && styles.todayBox,
-//             ]}
-//           >
-//             <Text style={styles.dayText}>{item.dayOfWeek}</Text>
-//             <Text
-//               style={[
-//                 styles.dateText,
-//                 item.date === currentDay && styles.todayText,
-//               ]}
-//             >
-//               {item.date}
-//             </Text>
-//           </View>
-//         )}
-//         showsHorizontalScrollIndicator={false}
-//       />
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     marginVertical: 20,
-//   },
-//   dayBox: {
-//     padding: 10,
-//     marginHorizontal: 5,
-//     backgroundColor: "#f0f0f0",
-//     borderRadius: 10,
-//     alignItems: "center",
-//     width: 60,
-//   },
-//   todayBox: {
-//     backgroundColor: "#4CAF50",
-//   },
-//   dayText: {
-//     fontSize: 12,
-//     color: "#333",
-//   },
-//   dateText: {
-//     fontSize: 16,
-//     fontWeight: "bold",
-//     color: "#333",
-//   },
-//   todayText: {
-//     color: "#fff",
-//   },
-// });
-
-// export default Calendar;
-
-//Este codigo es con la fila debajo del celular
-// import React, { useState } from "react";
-// import { View, Text, ScrollView, TouchableOpacity, Alert, TextInput, Button, } from "react-native";
-
-// type Event = { title: string; day: number; start: number; end: number };
-
-// const hours = Array.from({ length: 24 }, (_, i) => i); // 24 horas
-
-// const Calendar: React.FC = () => {
-//     const today = new Date();
-//     const currentDay = today.getDate();
-//     const currentMonth = today.getMonth();
-//     const currentYear = today.getFullYear();
-
-//     // Días del mes actual
-//     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-//     const daysArray = Array.from({ length: daysInMonth }, (_, i) => {
-//         const date = new Date(currentYear, currentMonth, i + 1);
-//         const dayOfWeek = date.toLocaleDateString("es-MX", { weekday: "short" });
-//         return { dayOfWeek, date: i + 1 };
-//     });
-
-//     const [events, setEvents] = useState<Event[]>([]);
-//     const [showForm, setShowForm] = useState(false);
-//     const [newEvent, setNewEvent] = useState<Event>({
-//         title: "", day: currentDay - 1, start: 8, end: 9,
-//     });
-
-//     const addEvent = () => {
-//         if (!newEvent.title) return Alert.alert("Error", "Agrega un título");
-//         setEvents([...events, newEvent]);
-//         setShowForm(false);
-//         setNewEvent({ title: "", day: currentDay - 1, start: 8, end: 9 });
-//     };
-
-//     const handleCellPress = (day: number, hour: number) => {
-//         setNewEvent({ ...newEvent, day, start: hour, end: hour + 1 });
-//         setShowForm(true);
-//     };
-
-//     const EventBox: React.FC<{ title: string; duration: number }> = ({
-//         title,
-//         duration,
-//     }) => (
-//         <View
-//             style={{
-//                 backgroundColor: "#4A90E2",
-//                 borderRadius: 5,
-//                 padding: 3,
-//                 height: duration * 60,
-//             }}
-//         >
-//             <Text style={{ color: "white", fontSize: 12 }}>{title}</Text>
-//         </View>
-//     );
-
-//     const HourCell: React.FC<{ hour: number }> = ({ hour }) => (
-//         <View style={{ width: 55, alignItems: "flex-end", paddingRight: 5 }}>
-//             <Text style={{ fontSize: 12, color: "#999" }}>
-//                 {hour === 0 ? "12 a.m." : hour < 12 ? `${hour} a.m.` : hour === 12 ? "12 p.m." : `${hour - 12} p.m.`}
-//             </Text>
-//         </View>
-//     );
-
-//     return (
-//         <View style={{ flex: 1, backgroundColor: "#fff", paddingTop: 20 }}>
-//             {/* Encabezado de días con scroll lateral */}
-//             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-//                 <View
-//                     style={{
-//                         flexDirection: "row",
-//                         borderBottomWidth: 1,
-//                         borderColor: "#ddd",
-//                         paddingBottom: 5,
-//                     }}
-//                 >
-//                     <View style={{ width: 55 }} />
-//                     {daysArray.map((item, idx) => (
-//                         <View
-//                             key={idx}
-//                             style={{
-//                                 width: 100,
-//                                 padding: 5,
-//                                 alignItems: "center",
-//                                 backgroundColor:
-//                                     item.date === currentDay ? "#4CAF50" : "transparent",
-//                                 borderRadius: item.date === currentDay ? 10 : 0,
-//                             }}
-//                         >
-//                             <Text style={{ fontSize: 12, color: "#333" }}>
-//                                 {item.dayOfWeek}
-//                             </Text>
-//                             <Text
-//                                 style={{
-//                                     fontSize: 14,
-//                                     fontWeight: "bold",
-//                                     color: item.date === currentDay ? "#fff" : "#333",
-//                                 }}
-//                             >
-//                                 {item.date}
-//                             </Text>
-//                         </View>
-//                     ))}
-//                 </View>
-//             </ScrollView>
-
-//             {/* Cuerpo con scroll lateral + vertical */}
-//             <ScrollView horizontal>
-//                 <ScrollView>
-//                     {hours.map((h, hi) => (
-//                         <View
-//                             key={hi}
-//                             style={{
-//                                 flexDirection: "row",
-//                                 borderBottomWidth: 1,
-//                                 borderColor: "#eee",
-//                                 minHeight: 60,
-//                             }}
-//                         >
-//                             {/* Columna fija con la hora */}
-//                             <HourCell hour={h} />
-
-//                             {/* Columnas de días */}
-//                             {daysArray.map((day, di) => (
-//                                 <TouchableOpacity
-//                                     key={di}
-//                                     style={{
-//                                         width: 100,
-//                                         borderLeftWidth: 1,
-//                                         borderColor: "#eee",
-//                                         padding: 2,
-//                                     }}
-//                                     onPress={() => handleCellPress(di, h)}
-//                                 >
-//                                     {events
-//                                         .filter((ev) => ev.day === di && ev.start === h)
-//                                         .map((ev, idx) => (
-//                                             <EventBox
-//                                                 key={idx}
-//                                                 title={ev.title}
-//                                                 duration={ev.end - ev.start}
-//                                             />
-//                                         ))}
-//                                 </TouchableOpacity>
-//                             ))}
-//                         </View>
-//                     ))}
-//                 </ScrollView>
-//             </ScrollView>
-
-//             {/* Formulario flotante */}
-//             {showForm && (
-//                 <View
-//                     style={{
-//                         position: "absolute",
-//                         top: 0,
-//                         left: 0,
-//                         right: 0,
-//                         bottom: 0,
-//                         backgroundColor: "rgba(0,0,0,0.5)",
-//                         justifyContent: "center",
-//                         alignItems: "center",
-//                     }}
-//                 >
-//                     <View
-//                         style={{
-//                             backgroundColor: "#fff",
-//                             padding: 20,
-//                             borderRadius: 10,
-//                             width: "80%",
-//                         }}
-//                     >
-//                         <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
-//                             Nuevo evento
-//                         </Text>
-//                         <TextInput
-//                             placeholder="Título del evento"
-//                             value={newEvent.title}
-//                             onChangeText={(t) => setNewEvent({ ...newEvent, title: t })}
-//                             style={{
-//                                 borderWidth: 1,
-//                                 borderColor: "#ccc",
-//                                 borderRadius: 5,
-//                                 padding: 8,
-//                                 marginBottom: 10,
-//                             }}
-//                         />
-//                         <Button title="Guardar" onPress={addEvent} />
-//                         <Button
-//                             title="Cancelar"
-//                             color="red"
-//                             onPress={() => setShowForm(false)}
-//                         />
-//                     </View>
-//                 </View>
-//             )}
-//         </View>
-//     );
-// };
-
-// export default Calendar;
-
-
-
-//este es con (SafeAreaView)
-
-// import React, { useState } from "react";
-// import {Text, ScrollView, TouchableOpacity, Alert, TextInput, Button, View,} from "react-native";
-// import { SafeAreaView } from "react-native-safe-area-context";
-
-// type Event = { title: string; day: number; start: number; end: number };
-
-// const hours = Array.from({ length: 24 }, (_, i) => i); // 24 horas
-
-// const Calendar: React.FC = () => {
-//   const today = new Date();
-//   const currentDay = today.getDate();
-//   const currentMonth = today.getMonth();
-//   const currentYear = today.getFullYear();
-
-//   Días del mes actual
-//   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-//   const daysArray = Array.from({ length: daysInMonth }, (_, i) => {
-//     const date = new Date(currentYear, currentMonth, i + 1);
-//     const dayOfWeek = date.toLocaleDateString("es-MX", { weekday: "short" });
-//     return { dayOfWeek, date: i + 1 };
-//   });
-
-//   const [events, setEvents] = useState<Event[]>([]);
-//   const [showForm, setShowForm] = useState(false);
-//   const [newEvent, setNewEvent] = useState<Event>({
-//     title: "",
-//     day: currentDay - 1,
-//     start: 8,
-//     end: 9,
-//   });
-
-//   const addEvent = () => {
-//     if (!newEvent.title) return Alert.alert("Error", "Agrega un título");
-//     setEvents([...events, newEvent]);
-//     setShowForm(false);
-//     setNewEvent({ title: "", day: currentDay - 1, start: 8, end: 9 });
-//   };
-
-//   const handleCellPress = (day: number, hour: number) => {
-//     setNewEvent({ ...newEvent, day, start: hour, end: hour + 1 });
-//     setShowForm(true);
-//   };
-
-//   const EventBox: React.FC<{ title: string; duration: number }> = ({
-//     title,
-//     duration,
-//   }) => (
-//     <View
-//       style={{
-//         backgroundColor: "#4A90E2",
-//         borderRadius: 5,
-//         padding: 3,
-//         height: duration * 60,
-//       }}
-//     >
-//       <Text style={{ color: "white", fontSize: 12 }}>{title}</Text>
-//     </View>
-//   );
-
-//   const HourCell: React.FC<{ hour: number }> = ({ hour }) => (
-//     <View style={{ width: 55, alignItems: "flex-end", paddingRight: 5 }}>
-//       <Text style={{ fontSize: 12, color: "#999" }}>
-//         {hour === 0
-//           ? "12 a.m."
-//           : hour < 12
-//           ? `${hour} a.m.`
-//           : hour === 12
-//           ? "12 p.m."
-//           : `${hour - 12} p.m.`}
-//       </Text>
-//     </View>
-//   );
-
-//   return (
-//     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-//       {/* Encabezado de días con scroll lateral */}
-//       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-//         <View
-//           style={{
-//             flexDirection: "row",
-//             borderBottomWidth: 1,
-//             borderColor: "#ddd",
-//             paddingBottom: 5,
-//           }}
-//         >
-//           <View style={{ width: 55 }} />
-//           {daysArray.map((item, idx) => (
-//             <View
-//               key={idx}
-//               style={{
-//                 width: 100,
-//                 padding: 5,
-//                 alignItems: "center",
-//                 backgroundColor:
-//                   item.date === currentDay ? "#4CAF50" : "transparent",
-//                 borderRadius: item.date === currentDay ? 10 : 0,
-//               }}
-//             >
-//               <Text style={{ fontSize: 12, color: "#333" }}>
-//                 {item.dayOfWeek}
-//               </Text>
-//               <Text
-//                 style={{
-//                   fontSize: 14,
-//                   fontWeight: "bold",
-//                   color: item.date === currentDay ? "#fff" : "#333",
-//                 }}
-//               >
-//                 {item.date}
-//               </Text>
-//             </View>
-//           ))}
-//         </View>
-//       </ScrollView>
-
-//       {/* Cuerpo con scroll lateral + vertical */}
-//       <ScrollView horizontal>
-//         <ScrollView>
-//           {hours.map((h, hi) => (
-//             <View
-//               key={hi}
-//               style={{
-//                 flexDirection: "row",
-//                 borderBottomWidth: 1,
-//                 borderColor: "#eee",
-//                 minHeight: 60,
-//               }}
-//             >
-//               {/* Columna fija con la hora */}
-//               <HourCell hour={h} />
-
-//               {/* Columnas de días */}
-//               {daysArray.map((day, di) => (
-//                 <TouchableOpacity
-//                   key={di}
-//                   style={{
-//                     width: 100,
-//                     borderLeftWidth: 1,
-//                     borderColor: "#eee",
-//                     padding: 2,
-//                   }}
-//                   onPress={() => handleCellPress(di, h)}
-//                 >
-//                   {events
-//                     .filter((ev) => ev.day === di && ev.start === h)
-//                     .map((ev, idx) => (
-//                       <EventBox
-//                         key={idx}
-//                         title={ev.title}
-//                         duration={ev.end - ev.start}
-//                       />
-//                     ))}
-//                 </TouchableOpacity>
-//               ))}
-//             </View>
-//           ))}
-//         </ScrollView>
-//       </ScrollView>
-
-//       {/* Formulario flotante */}
-//       {showForm && (
-//         <View
-//           style={{
-//             position: "absolute",
-//             top: 0,
-//             left: 0,
-//             right: 0,
-//             bottom: 0,
-//             backgroundColor: "rgba(0,0,0,0.5)",
-//             justifyContent: "center",
-//             alignItems: "center",
-//           }}
-//         >
-//           <View
-//             style={{
-//               backgroundColor: "#fff",
-//               padding: 20,
-//               borderRadius: 10,
-//               width: "80%",
-//             }}
-//           >
-//             <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
-//               Nuevo evento
-//             </Text>
-//             <TextInput
-//               placeholder="Título del evento"
-//               value={newEvent.title}
-//               onChangeText={(t) => setNewEvent({ ...newEvent, title: t })}
-//               style={{
-//                 borderWidth: 1,
-//                 borderColor: "#ccc",
-//                 borderRadius: 5,
-//                 padding: 8,
-//                 marginBottom: 10,
-//               }}
-//             />
-//             <Button title="Guardar" onPress={addEvent} />
-//             <Button
-//               title="Cancelar"
-//               color="red"
-//               onPress={() => setShowForm(false)}
-//             />
-//           </View>
-//         </View>
-//       )}
-//     </SafeAreaView>
-//   );
-// };
-
-// export default Calendar;
-import React, { useState, useRef } from "react";
-import {Text, ScrollView, TouchableOpacity, Alert, TextInput, Button, View, NativeSyntheticEvent, NativeScrollEvent,} from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { View, Text, TouchableOpacity, TextInput, Button, ScrollView, } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
 
-type Event = { title: string; day: number; start: number; end: number };
+type CalendarItem = {
+    title: string;
+    date: string;
+    type: "evento" | "recordatorio";
+    hour?: number;
+    minute?: number;
+    ampm?: "AM" | "PM";
+    notification?: string;
+    category?: "inyeccion" | "ensamble" | "pintura";
+};
 
-const hours = Array.from({ length: 24 }, (_, i) => i); // 24 horas
-
+//componente funcional
 const Calendar: React.FC = () => {
     const today = new Date();
-    const currentDay = today.getDate();
-    const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
 
-    // Días del mes actual
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const daysArray = Array.from({ length: daysInMonth }, (_, i) => {
-        const date = new Date(currentYear, currentMonth, i + 1);
-        const dayOfWeek = date.toLocaleDateString("es-MX", { weekday: "short" });
-        return { dayOfWeek, date: i + 1 };
-    });
+    const [items, setItems] = useState<CalendarItem[]       >([]);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const [newTitle, setNewTitle] = useState("");
+    const [newType, setNewType] = useState<"evento" | "recordatorio">("evento");
 
-    const [events, setEvents] = useState<Event[]>([]);
-    const [showForm, setShowForm] = useState(false);
-    const [newEvent, setNewEvent] = useState<Event>({
-        title: "",
-        day: currentDay - 1,
-        start: 8,
-        end: 9,
-    });
+    const [selectedHour, setSelectedHour] = useState<number>(1);
+    const [selectedMinute, setSelectedMinute] = useState<number>(0);
+    const [selectedAMPM, setSelectedAMPM] = useState<"AM" | "PM">("AM");
+    const [selectedNotification, setSelectedNotification] = useState<string>("10 min antes");
 
-    // sincronizar scroll
-    const headerScrollRef = useRef<ScrollView | null>(null);
-    const bodyScrollRef = useRef<ScrollView | null>(null);
+    // categoría
+    const [selectedCategory, setSelectedCategory] =useState<"inyeccion" | "ensamble" | "pintura">("inyeccion");
+    const [categoryDropdown, setCategoryDropdown] = useState(false);
 
-    // Evita bucle infinito (cuando un scroll llama al otro)
-    const isSyncing = useRef(false);
+    const categoryOptions = [
+        { label: "Inyección", value: "inyeccion", color: "green" },
+        { label: "Ensamble", value: "ensamble", color: "blue" },
+        { label: "Pintura", value: "pintura", color: "orange" },
+    ];
 
-    const syncScroll = (
-        ref: React.RefObject<ScrollView | null>,
-        event: NativeSyntheticEvent<NativeScrollEvent>
-    ) => {
-        if (isSyncing.current) return;
-        isSyncing.current = true;
+    const [hourDropdown, setHourDropdown] = useState(false);
+    const [minuteDropdown, setMinuteDropdown] = useState(false);
+    const [ampmDropdown, setAMPMDropdown] = useState(false);
+    const [notifDropdown, setNotifDropdown] = useState(false);
+    useEffect(() => {
+        const checkReminders = () => {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
 
-        ref.current?.scrollTo({
-            x: event.nativeEvent.contentOffset.x,
-            animated: false,
+            items.forEach(item => {
+                if (item.type === "recordatorio" && item.hour !== undefined && item.minute !== undefined) {
+                    let itemHour = item.hour % 12;
+                    if (item.ampm === "PM") itemHour += 12;
+
+                    if (itemHour === currentHour && item.minute === currentMinute) {
+                        triggerBell();
+                    }
+                }
+            });
+        };
+
+        // Ejecuta primero al cargar
+        checkReminders();
+
+        // Calcula ms restantes hasta el siguiente minuto
+        const now = new Date();
+        const delay = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
+        const timeout = setTimeout(() => {
+            checkReminders();
+            const interval = setInterval(checkReminders, 60 * 1000);
+            // Guardamos para limpiar después
+            (window as any)._reminderInterval = interval;
+        }, delay);
+
+        return () => {
+            clearTimeout(timeout);
+            clearInterval((window as any)._reminderInterval);
+        };
+    }, [items]);
+
+    const scrollRef = useRef<ScrollView>(null);
+    const monthLayouts = useRef<{ [key: number]: number }>({});
+
+    // animación campana
+    const bellScale = useSharedValue(1);
+    const bellRotate = useSharedValue(0);
+    const bellShake = useSharedValue(0);
+
+    const bellAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [
+            { scale: bellScale.value },
+            { rotate: `${bellRotate.value}deg` },
+            { translateX: bellShake.value },
+        ],
+    }));
+
+    const triggerBell = () => {
+        bellScale.value = withSpring(1.5, { damping: 2, stiffness: 150 }, () => {
+            bellScale.value = withSpring(1);
         });
-
-        setTimeout(() => {
-            isSyncing.current = false;
-        }, 0);
+        bellRotate.value = withSequence(
+            withSpring(15, { damping: 3, stiffness: 100 }),
+            withSpring(-10, { damping: 3, stiffness: 100 }),
+            withSpring(0, { damping: 3, stiffness: 100 })
+        );
+        bellShake.value = withSequence(
+            withSpring(-8, { damping: 2, stiffness: 120 }),
+            withSpring(8, { damping: 2, stiffness: 120 }),
+            withSpring(-5, { damping: 2, stiffness: 120 }),
+            withSpring(0, { damping: 2, stiffness: 120 })
+        );
     };
 
-    const addEvent = () => {
-        if (!newEvent.title) return Alert.alert("Error", "Agrega un título");
-        setEvents([...events, newEvent]);
-        setShowForm(false);
-        setNewEvent({ title: "", day: currentDay - 1, start: 8, end: 9 });
+    const addItem = () => {
+        if (!newTitle.trim() || !selectedDate) return;
+
+        setItems([...items,
+        {
+            title: newTitle,
+            date: selectedDate,
+            type: newType,
+            hour: selectedHour,
+            minute: selectedMinute,
+            ampm: selectedAMPM,
+            notification: selectedNotification,
+            category: selectedCategory,
+        },
+        ]);
+
+        setNewTitle("");
+        setNewType("evento");
+        setSelectedHour(1);
+        setSelectedMinute(0);
+        setSelectedAMPM("AM");
+        setSelectedNotification("10 min antes");
+        setSelectedCategory("inyeccion");
+        setModalVisible(false);
+        // triggerBell();
     };
 
-    const handleCellPress = (day: number, hour: number) => {
-        setNewEvent({ ...newEvent, day, start: hour, end: hour + 1 });
-        setShowForm(true);
-    };
+    const renderMonth = (month: number, year: number) => {
+        const firstDay = new Date(year, month, 1).getDay();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+        const daysArray: (number | null)[] = Array(firstDay)
+            .fill(null)
+            .concat(Array.from({ length: totalDays }, (_, i) => i + 1));
 
-    const EventBox: React.FC<{ title: string; duration: number }> = ({
-        title,
-        duration,
-    }) => (
-        <View
-            style={{
-                backgroundColor: "#BFECF5",
-                borderRadius: 5,
-                padding: 3,
-                height: duration * 60,
-            }}
-        >
-            <Text style={{ color: "#72A9C2", fontSize: 12, fontWeight: "bold" }}>{title}</Text>
-        </View>
-    );
+        const monthName = new Date(year, month).toLocaleDateString("es-MX", {
+            month: "long",
+            year: "numeric",
+        });
+        const formattedMonth =
+            monthName.charAt(0).toUpperCase() +
+            monthName.slice(1).toLowerCase();
 
-    const HourCell: React.FC<{ hour: number }> = ({ hour }) => (
-        <View style={{ width: 55, alignItems: "flex-end", paddingRight: 5 }}>
-            <Text style={{ fontSize: 12, color: "#999" }}>
-                {hour === 0
-                    ? "12 a.m."
-                    : hour < 12
-                        ? `${hour} a.m.`
-                        : hour === 12
-                            ? "12 p.m."
-                            : `${hour - 12} p.m.`}
-            </Text>
-        </View>
-    );
+        const weekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-    return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-            {/* días con scroll sincronizado */}
-            <ScrollView
-                horizontal
-                ref={headerScrollRef}
-                showsHorizontalScrollIndicator={false}
-                onScroll={(e) => syncScroll(bodyScrollRef, e)}
-                scrollEventThrottle={16}
+        return (
+            <View
+                key={`${year}-${month}`}
+                style={{ marginBottom: 40 }}
+                onLayout={(event) => {
+                    monthLayouts.current[month] = event.nativeEvent.layout.y;
+                }}
             >
+                <Text
+                    style={{
+                        fontSize: 22,
+                        fontWeight: "bold",
+                        textAlign: "center",
+                        marginBottom: 10,
+                    }}
+                >
+                    {formattedMonth}
+                </Text>
+
                 <View
                     style={{
                         flexDirection: "row",
-                        borderBottomWidth: 1,
-                        borderColor: "#ddd",
-                        paddingBottom: 5,
+                        justifyContent: "space-around",
                     }}
                 >
-                    <View style={{ width: 55 }} />
-                    {daysArray.map((item, idx) => (
-                        <View
-                            key={idx}
+                    {weekDays.map((d, i) => (
+                        <Text
+                            key={i}
                             style={{
-                                width: 100,
-                                padding: 5,
-                                alignItems: "center",
-                                backgroundColor:
-                                    item.date === currentDay ? "#4CAF50" : "transparent",
-                                borderRadius: item.date === currentDay ? 10 : 0,
+                                fontWeight: "bold",
+                                width: 40,
+                                textAlign: "center",
+                                color: "#555",
                             }}
                         >
-                            <Text style={{ fontSize: 12, color: "#333" }}>
-                                {item.dayOfWeek}
-                            </Text>
-                            <Text
-                                style={{
-                                    fontSize: 14,
-                                    fontWeight: "bold",
-                                    color: item.date === currentDay ? "#fff" : "#333",
-                                }}
-                            >
-                                {item.date}
-                            </Text>
-                        </View>
+                            {d}
+                        </Text>
                     ))}
                 </View>
-            </ScrollView>
 
-            {/* scroll sincronizado */}
-            <ScrollView
-                horizontal
-                ref={bodyScrollRef}
-                onScroll={(e) => syncScroll(headerScrollRef, e)}
-                scrollEventThrottle={16}
+                <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                    {daysArray.map((day, i) => {
+                        if (!day)
+                            return (
+                                <View
+                                    key={i}
+                                    style={{
+                                        width: "14.2%",
+                                        borderWidth: 0.5,
+                                        borderColor: "#eee",
+                                        minHeight: 120, // aumenta el alto
+                                    }}
+                                />
+                            );
+
+                        const dateStr = `${year}-${month + 1}-${day}`;
+                        const dayItems = items.filter((it) => it.date === dateStr);
+                        const isToday =
+                            day === today.getDate() &&
+                            month === today.getMonth() &&
+                            year === today.getFullYear();
+
+                        return (
+                            <TouchableOpacity
+                                key={i}
+                                style={{
+                                    width: "14.2%",
+                                    borderWidth: 0.5,
+                                    borderColor: "#eee",
+                                    minHeight: 120,
+                                    padding: 2,
+                                    borderRadius: isToday ? 6 : 0,
+                                }}
+                                onPress={() => {
+                                    setSelectedDate(dateStr);
+                                    setModalVisible(true);
+                                }}
+                            >
+                                <Text
+                                    style={{
+                                        fontSize: 14,
+                                        fontWeight: "bold",
+                                        textAlign: "center",
+                                        color: isToday ? "#fff" : "#000",
+                                        backgroundColor: isToday ? "#f03e3e" : "white",
+                                        borderRadius: 999,
+                                        height: 24,
+                                        width: 24,
+                                        lineHeight: 24,
+                                        textAlignVertical: "center",
+                                        alignSelf: "center",
+                                        marginBottom: 4,
+                                    }}
+                                >
+                                    {day}
+                                </Text>
+                                {dayItems.map((it, idx) => (
+                                    <View
+                                        key={idx}
+                                        style={{
+                                            backgroundColor:
+                                                it.type === "evento" ? "#BFECF5" : "#F5D6BF",
+                                            borderRadius: 8,
+                                            paddingHorizontal: 3,
+                                            marginTop: 2,
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                        }}
+                                    >
+                                        {it.category && (
+                                            <View
+                                                style={{
+                                                    width: 8,
+                                                    height: 8,
+                                                    borderRadius: 4,
+                                                    backgroundColor:
+                                                        categoryOptions.find(
+                                                            (c) => c.value === it.category
+                                                        )?.color || "gray",
+                                                    marginRight: 4,
+                                                }}
+                                            />
+                                        )}
+                                        <Text
+                                            style={{
+                                                fontSize: 12,
+                                                color: "#333",
+                                                flexShrink: 1, // evita que se desborde
+                                                flexWrap: "wrap", // permite varias líneas
+                                            }}
+                                        >
+                                            {it.title}{" "}
+                                            {it.type === "recordatorio" &&
+                                                `- ${it.hour}:${it.minute
+                                                    ?.toString()
+                                                    .padStart(2, "0")} ${it.ampm}`}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+            </View>
+        );
+    };
+
+    const ComboBox = ({
+        label,
+        selected,
+        setSelected,
+        options,
+        dropdownOpen,
+        setDropdownOpen,
+    }: any) => (
+        <View style={{ marginBottom: 10 }}>
+            <Text style={{ fontWeight: "bold", marginBottom: 5 }}>
+                {label}
+            </Text>
+            <TouchableOpacity
+                style={{
+                    borderWidth: 1,
+                    borderColor: "#ccc",
+                    padding: 10,
+                    borderRadius: 5,
+                    backgroundColor: "#f9f9f9",
+                }}
+                onPress={() => setDropdownOpen(!dropdownOpen)}
             >
-                <ScrollView>
-                    {hours.map((h, hi) => (
-                        <View
-                            key={hi}
+                <Text>{selected}</Text>
+            </TouchableOpacity>
+            {dropdownOpen && (
+                <ScrollView
+                    style={{
+                        maxHeight: 120,
+                        borderWidth: 1,
+                        borderColor: "#ccc",
+                        marginTop: 5,
+                    }}
+                >
+                    {options.map((opt: any, idx: number) => (
+                        <TouchableOpacity
+                            key={idx}
                             style={{
-                                flexDirection: "row",
-                                borderBottomWidth: 1,
-                                borderColor: "#eee",
-                                minHeight: 60,
+                                padding: 10,
+                                backgroundColor:
+                                    selected === opt ? "#eee" : "#fff",
+                            }}
+                            onPress={() => {
+                                setSelected(opt);
+                                setDropdownOpen(false);
                             }}
                         >
-                            <HourCell hour={h} />
-                            {daysArray.map((day, di) => (
-                                <TouchableOpacity
-                                    key={di}
-                                    style={{
-                                        width: 100,
-                                        borderLeftWidth: 1,
-                                        borderColor: "#eee",
-                                        padding: 2,
-                                    }}
-                                    onPress={() => handleCellPress(di, h)}
-                                >
-                                    {events
-                                        .filter((ev) => ev.day === di && ev.start === h)
-                                        .map((ev, idx) => (
-                                            <EventBox
-                                                key={idx}
-                                                title={ev.title}
-                                                duration={ev.end - ev.start}
-                                            />
-                                        ))}
-                                </TouchableOpacity>
-                            ))}
-                        </View>
+                            <Text>{opt}</Text>
+                        </TouchableOpacity>
                     ))}
                 </ScrollView>
+            )}
+        </View>
+    );
+
+    // combo de categoría
+    const CategoryComboBox = () => (
+        <View style={{ marginBottom: 10 }}>
+            <Text style={{ fontWeight: "bold", marginBottom: 5 }}>Categoría</Text>
+            <TouchableOpacity
+                style={{
+                    borderWidth: 1,
+                    borderColor: "#ccc",
+                    padding: 10,
+                    borderRadius: 5,
+                    backgroundColor: "#f9f9f9",
+                    flexDirection: "row",
+                    alignItems: "center",
+                }}
+                onPress={() => setCategoryDropdown(!categoryDropdown)}
+            >
+                <View
+                    style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: 6,
+                        backgroundColor:
+                            categoryOptions.find(
+                                (c) => c.value === selectedCategory
+                            )?.color || "gray",
+                        marginRight: 8,
+                    }}
+                />
+                <Text>
+                    {
+                        categoryOptions.find(
+                            (c) => c.value === selectedCategory
+                        )?.label
+                    }
+                </Text>
+            </TouchableOpacity>
+            {categoryDropdown && (
+                <ScrollView
+                    style={{
+                        maxHeight: 120,
+                        borderWidth: 1,
+                        borderColor: "#ccc",
+                        marginTop: 5,
+                    }}
+                >
+                    {categoryOptions.map((opt, idx) => (
+                        <TouchableOpacity
+                            key={idx}
+                            style={{
+                                padding: 10,
+                                backgroundColor:
+                                    selectedCategory === opt.value ? "#eee" : "#fff",
+                                flexDirection: "row",
+                                alignItems: "center",
+                            }}
+                            onPress={() => {
+                                setSelectedCategory(opt.value as any);
+                                setCategoryDropdown(false);
+                            }}
+                        >
+                            <View
+                                style={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: 6,
+                                    backgroundColor: opt.color,
+                                    marginRight: 8,
+                                }}
+                            />
+                            <Text>{opt.label}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            )}
+        </View>
+    );
+
+    // entrar al mes actual
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            const y = monthLayouts.current[currentMonth];
+            if (scrollRef.current && y !== undefined) {
+                scrollRef.current.scrollTo({ y, animated: false });
+            }
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, []);
+
+
+    return (
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+            {/* campana */}
+            <Animated.View
+                style={[
+                    { position: "absolute", top: 10, right: 20, zIndex: 10 },
+                    bellAnimatedStyle,
+                ]}
+            >
+                <Ionicons
+                    name="notifications-outline"
+                    size={44}
+                    color="#F03E3E"
+                />
+            </Animated.View>
+
+            {/* calendario */}
+            <ScrollView ref={scrollRef}>
+                {Array.from({ length: 12 }, (_, i) =>
+                    renderMonth(i, currentYear)
+                )}
             </ScrollView>
 
-            {/* Formulario flotante */}
-            {showForm && (
+            {/* modal */}
+            {modalVisible && (
                 <View
                     style={{
                         position: "absolute",
@@ -707,36 +489,119 @@ const Calendar: React.FC = () => {
                         alignItems: "center",
                     }}
                 >
-                    <View
+                    <ScrollView
                         style={{
                             backgroundColor: "#fff",
-                            padding: 20,
                             borderRadius: 10,
-                            width: "80%",
+                            padding: 20,
+                            width: "85%",
+                            maxHeight: "80%",
                         }}
                     >
                         <Text
-                            style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}
+                            style={{
+                                fontSize: 18,
+                                fontWeight: "bold",
+                                marginBottom: 10,
+                            }}
                         >
-                            Nuevo evento
+                            Nuevo{" "}
+                            {newType === "recordatorio"
+                                ? "Recordatorio"
+                                : "Evento"}
                         </Text>
+
                         <TextInput
-                            placeholder="Título del evento"
-                            value={newEvent.title}
-                            onChangeText={(t) => setNewEvent({ ...newEvent, title: t })}
-                            placeholderTextColor="#ccc" 
                             style={{
                                 borderWidth: 1,
                                 borderColor: "#ccc",
-                                borderRadius: 5,
                                 padding: 8,
                                 marginBottom: 10,
+                                borderRadius: 5,
                             }}
+                            placeholder="Título"
+                            value={newTitle}
+                            onChangeText={setNewTitle}
                         />
-                        <Button title="Guardar" onPress={addEvent} />
-                        <Button title="Cancelar" color="red" onPress={() => setShowForm(false)}
-                        />
-                    </View>
+
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                justifyContent: "space-around",
+                                marginBottom: 10,
+                            }}
+                        >
+                            <Button
+                                title="Evento"
+                                color={
+                                    newType === "evento" ? "#505050" : "#ccc"
+                                }
+                                onPress={() => setNewType("evento")}
+                            />
+                            <Button
+                                title="Recordatorio"
+                                color={
+                                    newType === "recordatorio"
+                                        ? "#505050"
+                                        : "#ccc"
+                                }
+                                onPress={() => setNewType("recordatorio")}
+                            />
+                        </View>
+
+                        {newType === "recordatorio" && (
+                            <>
+                                <ComboBox
+                                    label="Hora"
+                                    selected={selectedHour}
+                                    setSelected={setSelectedHour}
+                                    options={Array.from(
+                                        { length: 12 },
+                                        (_, i) => i + 1
+                                    )}
+                                    dropdownOpen={hourDropdown}
+                                    setDropdownOpen={setHourDropdown}
+                                />
+                                <ComboBox
+                                    label="Minutos"
+                                    selected={selectedMinute}
+                                    setSelected={setSelectedMinute}
+                                    options={[
+                                        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60
+                                    ]}
+                                    dropdownOpen={minuteDropdown}
+                                    setDropdownOpen={setMinuteDropdown}
+                                />
+                                <ComboBox
+                                    label="AM/PM"
+                                    selected={selectedAMPM}
+                                    setSelected={setSelectedAMPM}
+                                    options={["AM", "PM"]}
+                                    dropdownOpen={ampmDropdown}
+                                    setDropdownOpen={setAMPMDropdown}
+                                />
+                                <ComboBox
+                                    label="Notificación"
+                                    selected={selectedNotification}
+                                    setSelected={setSelectedNotification}
+                                    options={[
+                                        "-",
+                                        "10 min antes",
+                                        "30 min antes",
+                                        "1 hora antes",
+                                    ]}
+                                    dropdownOpen={notifDropdown}
+                                    setDropdownOpen={setNotifDropdown}
+                                />
+                                <CategoryComboBox />
+                            </>
+                        )}
+
+                        <View style={{ flexDirection: "row", justifyContent: "space-evenly", marginTop: 10 }}>
+                            <Button title="Guardar" onPress={addItem} />
+                            <Button title="Cancelar" color="#F03E3E" onPress={() => setModalVisible(false)} />
+                        </View>
+                    </ScrollView>
                 </View>
             )}
         </SafeAreaView>
