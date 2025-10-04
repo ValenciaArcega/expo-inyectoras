@@ -79,6 +79,7 @@ const DraggableButton = ({ btn, index, positions }) => {
                 <Ionicons name={btn.icon} size={50} className="text-white dark:text-black" />
                 <Text  onPress={() => {
                         if (btn.id === 2) go.navigate('Calendar')
+                        if (btn.id === 5) go.navigate('MyWebView')
                     }} style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
                     {btn.title}
                 </Text>
