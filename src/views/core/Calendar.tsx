@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, TextInput, Button, ScrollView, Alert } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, Button, ScrollView, Alert, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
@@ -46,9 +46,13 @@ const Calendar: React.FC = () => {
     const [ampmDropdown, setAMPMDropdown] = useState(false);
     const [notifDropdown, setNotifDropdown] = useState(false);
 
-    // para edición
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editingDate, setEditingDate] = useState<string | null>(null);
+
+    // ALERTA
+    const [alertActive, setAlertActive] = useState(false);
+    const [activeReminder, setActiveReminder] = useState<CalendarItem | null>(null);
+    const alertInterval = useRef<number | null>(null);
 
     // campana animada
     const bellScale = useSharedValue(1);
@@ -61,6 +65,12 @@ const Calendar: React.FC = () => {
             { rotate: `${bellRotate.value}deg` },
             { translateX: bellShake.value },
         ],
+    }));
+
+    // fondo parpadeante
+    const bgRed = useSharedValue(0);
+    const bgAnimatedStyle = useAnimatedStyle(() => ({
+        backgroundColor: bgRed.value ? "rgba(240,62,62,0.6)" : "transparent",
     }));
 
     const triggerBell = () => {
@@ -80,6 +90,31 @@ const Calendar: React.FC = () => {
         );
     };
 
+    const triggerAlert = (item: CalendarItem) => {
+        setActiveReminder(item);
+        setAlertActive(true);
+
+        // parpadeo fondo
+        if (alertInterval.current) clearInterval(alertInterval.current);
+        let blink = true;
+        alertInterval.current = setInterval(() => {
+            bgRed.value = blink ? 1 : 0;
+            blink = !blink;
+        }, 500);
+
+        triggerBell();
+    };
+
+    const stopAlert = () => {
+        if (alertInterval.current) {
+            clearInterval(alertInterval.current);
+            alertInterval.current = null;
+        }
+        bgRed.value = 0;
+        setAlertActive(false);
+        setActiveReminder(null);
+    };
+
     // cargar datos de MMKV
     useEffect(() => {
         const passEvents = mmkv.getString("mmkkv-events");
@@ -87,7 +122,6 @@ const Calendar: React.FC = () => {
         setItems(JSON.parse(passEvents));
     }, []);
 
-    // ir al mes actual
     const scrollRef = useRef<ScrollView>(null);
     const monthLayouts = useRef<{ [key: number]: number }>({});
     useEffect(() => {
@@ -99,8 +133,9 @@ const Calendar: React.FC = () => {
         }, 300);
         return () => clearTimeout(timeout);
     }, []);
+
+    // check recordatorios
     useEffect(() => {
-        // mantener un estado de recordatorios
         const triggeredReminders = new Set<string>();
 
         const checkReminders = () => {
@@ -119,23 +154,25 @@ const Calendar: React.FC = () => {
                     let itemHour = item.hour % 12;
                     if (item.ampm === "PM") itemHour += 12;
 
-                    // clave única para cada recordatorio
                     const reminderKey = `${item.date}-${itemHour}-${item.minute}-${idx}`;
 
-                    // solo disparar si coincide hora y minuto
-                    if (itemHour === currentHour && item.minute === currentMinute && !triggeredReminders.has(reminderKey)) {
+                    if (
+                        itemHour === currentHour &&
+                        item.minute === currentMinute &&
+                        !triggeredReminders.has(reminderKey)
+                    ) {
                         triggeredReminders.add(reminderKey);
-                        triggerBell();
+                        triggerAlert(item);
                     }
                 }
             });
         };
 
-        const interval = setInterval(checkReminders, 1000); // revisar cada segundo para precisión
+        const interval = setInterval(checkReminders, 1000);
         return () => clearInterval(interval);
-    }, [items]); // depende de los items para capturar cambios dinámicos
+    }, [items]);
 
-    // Guardar o editar evento
+    // agregar o editar evento
     const addItem = () => {
         try {
             if (!newTitle || !newTitle.trim()) throw new Error("Asegúrate de ingresar un título");
@@ -144,7 +181,6 @@ const Calendar: React.FC = () => {
             let newItems = [...items];
 
             if (editingIndex !== null && editingDate === selectedDate) {
-                // editar
                 newItems[editingIndex] = {
                     title: newTitle,
                     date: selectedDate,
@@ -156,7 +192,6 @@ const Calendar: React.FC = () => {
                     category: selectedCategory,
                 };
             } else {
-                // nuevo
                 newItems.push({
                     title: newTitle,
                     date: selectedDate,
@@ -189,14 +224,12 @@ const Calendar: React.FC = () => {
         }
     };
 
-    // borrar
     const deleteItem = (index: number, date: string) => {
         const newItems = items.filter((it, idx) => !(it.date === date && idx === index));
         setItems(newItems);
         mmkv.set("mmkkv-events", JSON.stringify(newItems));
     };
 
-    // empezar edición
     const startEditing = (item: CalendarItem, index: number) => {
         setNewTitle(item.title);
         setNewType(item.type);
@@ -212,7 +245,6 @@ const Calendar: React.FC = () => {
         setModalVisible(true);
     };
 
-    // menú al presionar un evento
     const handleEventPress = (item: CalendarItem, index: number) => {
         Alert.alert(
             "Evento",
@@ -225,7 +257,7 @@ const Calendar: React.FC = () => {
         );
     };
 
-    // UI de meses
+    // render meses
     const renderMonth = (month: number, year: number) => {
         const firstDay = new Date(year, month, 1).getDay();
         const totalDays = new Date(year, month + 1, 0).getDate();
@@ -334,8 +366,8 @@ const Calendar: React.FC = () => {
             </View>
         );
     };
-   
-    // ComboBox reusables
+
+    // ComboBox genérico
     const ComboBox = ({ label, selected, setSelected, options, dropdownOpen, setDropdownOpen }: any) => (
         <View style={{ marginBottom: 10 }}>
             <Text style={{ fontWeight: "bold", marginBottom: 5 }}>{label}</Text>
@@ -345,8 +377,12 @@ const Calendar: React.FC = () => {
             >
                 <Text>{selected}</Text>
             </TouchableOpacity>
+
             {dropdownOpen && (
-                <ScrollView style={{ maxHeight: 120, borderWidth: 1, borderColor: "#ccc", marginTop: 5 }}>
+                <ScrollView
+                    style={{ maxHeight: 150, borderWidth: 1, borderColor: "#ccc", marginTop: 5, borderRadius: 5 }}
+                    nestedScrollEnabled={true}
+                >
                     {options.map((opt: any, idx: number) => (
                         <TouchableOpacity
                             key={idx}
@@ -404,10 +440,48 @@ const Calendar: React.FC = () => {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+            {/* Fondo parpadeante */}
+            <Animated.View style={[StyleSheet.absoluteFill, bgAnimatedStyle]} />
+
             {/* campana */}
             <Animated.View style={[{ position: "absolute", top: 10, right: 20, zIndex: 10 }, bellAnimatedStyle]}>
                 <Ionicons name="notifications-outline" size={44} color="#F03E3E" />
             </Animated.View>
+
+            {/* overlay alerta */}
+            {alertActive && activeReminder && (
+                <Animated.View
+                    style={{
+                        position: "absolute",
+                        top: "30%",
+                        left: "10%",
+                        right: "10%",
+                        backgroundColor: "#fff",
+                        padding: 20,
+                        borderRadius: 12,
+                        alignItems: "center",
+                        zIndex: 20,
+                        elevation: 10,
+                    }}
+                >
+                    <Text style={{ fontSize: 16, fontWeight: "bold" }}>{activeReminder.title}</Text>
+                    <Text style={{ marginTop: 10 }}>
+                        {activeReminder.hour}:{activeReminder.minute?.toString().padStart(2, "0")} {activeReminder.ampm}
+                    </Text>
+                    <TouchableOpacity
+                        style={{
+                            marginTop: 20,
+                            backgroundColor: "#F03E3E",
+                            paddingHorizontal: 20,
+                            paddingVertical: 10,
+                            borderRadius: 8,
+                        }}
+                        onPress={stopAlert}
+                    >
+                        <Text style={{ color: "#fff", fontWeight: "bold" }}>Detener</Text>
+                    </TouchableOpacity>
+                </Animated.View>
+            )}
 
             {/* calendario */}
             <ScrollView ref={scrollRef}>
@@ -424,9 +498,13 @@ const Calendar: React.FC = () => {
                 >
                     <ScrollView
                         style={{
-                            backgroundColor: "#fff", borderRadius: 10, padding: 20,
-                            width: "85%", maxHeight: "80%",
+                            backgroundColor: "#fff",
+                            borderRadius: 10,
+                            padding: 20,
+                            width: "85%",
+                            maxHeight: "90%",
                         }}
+                        contentContainerStyle={{ paddingBottom: 50 }}
                     >
                         <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
                             {editingIndex !== null ? "Editar" : "Nuevo"} {newType === "recordatorio" ? "Recordatorio" : "Evento"}
@@ -440,8 +518,18 @@ const Calendar: React.FC = () => {
                         />
 
                         <View style={{ flexDirection: "row", justifyContent: "space-around", marginBottom: 10 }}>
-                            <Button title="Evento" color={newType === "evento" ? "#505050" : "#ccc"} onPress={() => setNewType("evento")} />
-                            <Button title="Recordatorio" color={newType === "recordatorio" ? "#505050" : "#ccc"} onPress={() => setNewType("recordatorio")} />
+                            <Button
+                                title="Evento"
+                                onPress={() => setNewType("evento")}
+                                disabled={newType === "evento"}
+                                color={newType === "evento" ? "#505050" : "#ccc"}
+                            />
+                            <Button
+                                title="Recordatorio"
+                                onPress={() => setNewType("recordatorio")}
+                                disabled={newType === "recordatorio"}
+                                color={newType === "recordatorio" ? "#505050" : "#ccc"}
+                            />
                         </View>
 
                         {newType === "recordatorio" && (
@@ -475,38 +563,6 @@ const Calendar: React.FC = () => {
                             <Button title="Cancelar" color="#F03E3E" onPress={() => setModalVisible(false)} />
                         </View>
                     </ScrollView>
-                </View>
-            )}
-            {!modalVisible && (
-                <View
-                    style={{
-                        flexDirection: "row",
-                        flexWrap: "wrap",
-                        justifyContent: "center",
-                        paddingVertical: 15,
-                    }}
-                >
-                    {categoryOptions.map((cat, idx) => (
-                        <View
-                            key={idx}
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                margin: 5,
-                            }}
-                        >
-                            <View
-                                style={{
-                                    width: 14,
-                                    height: 14,
-                                    borderRadius: 7,
-                                    backgroundColor: cat.color,
-                                    marginRight: 5,
-                                }}
-                            />
-                            <Text style={{ fontSize: 12 }}>{cat.label}</Text>
-                        </View>
-                    ))}
                 </View>
             )}
         </SafeAreaView>
