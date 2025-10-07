@@ -50,19 +50,6 @@
             "enforceNavigationBarContrast": false
           }
         }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#ffffff",
-          "image": "./assets/images/logos/icon-variant-transparent.png",
-          "resizeMode": "contain",
-          "imageWidth": 200,
-          "dark": {
-            "image": "./assets/images/logos/icon-variant-transparent.png",
-            "backgroundColor": "#000000"
-          }
-        }
       ]
     ]
   }

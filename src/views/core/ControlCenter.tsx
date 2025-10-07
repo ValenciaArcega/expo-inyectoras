@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigation } from "@react-navigation/native";
-import { View, Text, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, Dimensions, ScrollView, } from 'react-native';
 import { Gesture, GestureDetector, } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, } from 'react-native-reanimated';
