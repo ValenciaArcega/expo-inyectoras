@@ -23,6 +23,8 @@ const DraggableButton = ({ btn, index, positions }) => {
             if (btn.route) {
                 go.navigate(btn.route);
             }
+            if (btn.id === 5) go.navigate('FileViewer')
+
         } catch (err) {
             console.warn("Error during navigation:", err);
         }
@@ -82,8 +84,8 @@ const DraggableButton = ({ btn, index, positions }) => {
 
     const style = useAnimatedStyle(() => ({
         position: "absolute",
-         width: BUTTON_SIZE,
-        height:BUTTON_HEIGHT,
+        width: BUTTON_SIZE,
+        height: BUTTON_HEIGHT,
         borderRadius: 18,
         shadowColor: 'rgba(0,0,0,0.9)',
         shadowOffset: {
@@ -102,24 +104,24 @@ const DraggableButton = ({ btn, index, positions }) => {
 
     return (
         <GestureDetector gesture={gesture}>
-            <Animated.View style={style}>
-                 <TouchableOpacity
-          onPress={handlePress}
-          className="px-6 py-7 !bg-white dark:!bg-[#495057] rounded-2xl items-center justify-center w-full h-full"
-        >
-          <Ionicons name={btn.icon} size={48} className={btn.iconColor} />
-          <Text className="text-black dark:text-white font-bold text-lg mt-2">
-            {btn.title}
-          </Text>
-          <Text className="text-gray-600 dark:text-gray-400 text-center">
-            {btn.subtitle}
-          </Text>
-        </TouchableOpacity>
-
+            <Animated.View style={[style]}>
+                <TouchableOpacity
+                    onPress={handlePress}
+                    className="px-6 py-7 !bg-white dark:!bg-[#495057] rounded-2xl items-center justify-center w-full h-full"
+                >
+                    <Ionicons name={btn.icon} size={48} className={btn.iconColor} />
+                    <Text className="text-black dark:text-white font-bold text-lg mt-2">
+                        {btn.title}
+                    </Text>
+                    <Text className="text-gray-600 dark:text-gray-400 text-center">
+                        {btn.subtitle}
+                    </Text>
+                </TouchableOpacity>
             </Animated.View>
         </GestureDetector>
     );
 };
+
 
 const ControlCenter = () => {
     const go = useNavigation();
@@ -132,22 +134,22 @@ const ControlCenter = () => {
     );
 
     return (
-          <View className="bg-[#f2f2f7] dark:bg-[#343a40] flex-1">
-      <ScrollView contentContainerStyle={gs.scroll}>
-        <View style={{ padding: 16, minHeight: '100%' }}>
+        <View className="bg-[#f2f2f7] dark:bg-[#343a40] flex-1">
+            <ScrollView contentContainerStyle={gs.scroll}>
+                <View style={{ padding: 16, minHeight: '100%' }}>
 
-          {buttonsData.map((btn, i) => (
-            <DraggableButton
-              key={btn.id}
-              btn={btn}
-              index={i}
-              positions={positions}
-            />
-          ))}
+                    {buttonsData.map((btn, i) => (
+                        <DraggableButton
+                            key={btn.id}
+                            btn={btn}
+                            index={i}
+                            positions={positions}
+                        />
+                    ))}
+                </View>
+            </ScrollView>
         </View>
-      </ScrollView>
-    </View>
-  );
+    );
 };
 
 

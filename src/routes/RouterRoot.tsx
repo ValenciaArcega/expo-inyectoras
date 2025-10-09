@@ -3,6 +3,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ControlCenter from '@core/ControlCenter';
 import Calendar from '@core/Calendar';
 import { View } from 'react-native';
+import MyWebView from '../views/core/FileViewer';
+import Andon from '../views/core/Andon';
+import Dashboard from '../views/core/Dashboard';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,45 +22,38 @@ const Router = function () {
 			name='Calendar'
 			component={Calendar}
 		/>
-				<Stack.Screen
+		<Stack.Screen
 			name='Andon'
 			component={Andon}
+			options={{
+				headerShown: false,
+			}}
 		/>
 		<Stack.Screen
 			name='Dashboard'
-			component={Dasboard}
+			component={Dashboard}
+			options={{
+				headerShown: false,
+			}}
 		/>
 		<Stack.Screen
 			name='Variables'
 			component={Variables}
-		/>
-	</Stack.Navigator>
-}
-
-const Andon = function () {
-	return <Stack.Navigator>
-		<Stack.Screen
-			name='Andon'
-			component={Andon}
 			options={{
 				headerShown: false,
 			}}
 		/>
-	</Stack.Navigator>
-
-}
-const Dasboard = function () {
-	return <Stack.Navigator>
 		<Stack.Screen
-			name='Dashboard'
-			component={Dasboard}
+			name='FileViewer'
+			component={MyWebView}
 			options={{
 				headerShown: false,
 			}}
 		/>
-	</Stack.Navigator>
 
+	</Stack.Navigator>
 }
+
 const Variables = function () {
 	return <Stack.Navigator>
 		<Stack.Screen
@@ -70,16 +66,4 @@ const Variables = function () {
 	</Stack.Navigator>
 }
 
-const FileViewer = function () {
-	return <Stack.Navigator>
-		<Stack.Screen
-			name='FileViewer'
-			component={FileViewer}
-			options={{
-				headerShown: false,
-			}}
-		/>
-	</Stack.Navigator>
-
-}
 export default Router
