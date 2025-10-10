@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import MyWebView from '../views/core/FileViewer';
 import Andon from '../views/core/Andon';
 import Dashboard from '../views/core/Dashboard';
+import Variables from '../views/core/Variables';
 
 const Stack = createNativeStackNavigator();
 
@@ -51,18 +52,6 @@ const Router = function () {
 			}}
 		/>
 
-	</Stack.Navigator>
-}
-
-const Variables = function () {
-	return <Stack.Navigator>
-		<Stack.Screen
-			name='Variables'
-			component={Variables}
-			options={{
-				headerShown: false,
-			}}
-		/>
 	</Stack.Navigator>
 }
 

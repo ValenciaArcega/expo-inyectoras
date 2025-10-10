@@ -13,8 +13,8 @@ type BtnControlCenter = {
 export const buttonsData: BtnControlCenter[]  = [
     {
         id: 1,
-        title: "Andon",
-        subtitle: "Monitorea producción con alertas en tiempo real para una respuesta rápida.",
+        title: "Andon Inyección",
+        subtitle: "Monitorea producción con alertas para una respuesta rápida.",
         route: 'Andon',
         icon: "storefront-sharp",
         iconColor: 'text-teal-500',
@@ -22,7 +22,7 @@ export const buttonsData: BtnControlCenter[]  = [
     {
         id: 2,
         title: "Cronograma",
-        subtitle: "Planifica tus actividades con un calendario intuitivo y recordatorios automáticos que optimizan tu gestión diaria.",
+        subtitle: "Planifica actividades y recordatorios que optimizan tu gestión diaria.",
         icon: "calendar-outline",
         route: 'Calendar',
         iconColor: 'text-yellow-400',
@@ -30,7 +30,7 @@ export const buttonsData: BtnControlCenter[]  = [
     {
         id: 3,
         title: "Dashboard",
-        subtitle: "Visualiza el rendimiento de tus procesos en tiempo real con gráficas claras y contadores precisos de piezas.",
+        subtitle: "Observa el rendimiento de tus procesos en tiempo real.",
         icon: "bar-chart-sharp",
         route:'Dashboard',
         iconColor: 'text-orange-400',
@@ -46,7 +46,7 @@ export const buttonsData: BtnControlCenter[]  = [
     {
         id: 5,
         title: "Visor de Archivos",
-        subtitle: "Accede, visualiza y gestiona tus documentos de forma rápida y segura, todo desde un solo lugar.",
+        subtitle: "Visualiza y gestiona tus documentos de forma rápida y segura.",
         icon: "documents",
         route:'FileViewer',
         iconColor: 'text-cyan-500',
