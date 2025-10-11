@@ -5,8 +5,9 @@ import Router from "@routes/RouterRoot";
 import { NavigationContainer } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { cssInterop } from "nativewind";
-import {StatusBar} from "expo-status-bar";
+import { StatusBar } from "expo-status-bar";
 import { Image, View } from "react-native";
+import { ReminderProvider } from "@/src/context/ReminderContext";
 
 cssInterop(Ionicons, {
   className: {
@@ -17,28 +18,29 @@ cssInterop(Ionicons, {
   }
 })
 
- 
-const App = function () { 
-  const [isSplash, setIsSplash] = useState (true)
+const App = function () {
+  const [isSplash, setIsSplash] = useState(true)
 
-  useEffect (function(){ 
-    setTimeout (()=>setIsSplash (false), 5000)
+  useEffect(function () {
+    setTimeout(() => setIsSplash(false), 5000)
   }, [])
 
   if (isSplash)
-    return  <Image 
-  source={require ("@/assets/illustrations/splash.gif")} 
-  className="w-full h-full" />
+    return <Image
+      source={require("@/assets/illustrations/splash.gif")}
+      className="w-full h-full" />
 
   return (
+    <ReminderProvider>
       <NavigationContainer>
-          <GestureHandlerRootView>
-            <StatusBar
-              style='auto' />
-              <Router />
-          </GestureHandlerRootView>
+        <GestureHandlerRootView>
+          <StatusBar
+            style='auto' />
+          <Router />
+
+        </GestureHandlerRootView>
       </NavigationContainer>
-    
+    </ReminderProvider>
   );
 }
 export default App

@@ -1,0 +1,215 @@
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import { Modal, Text, TouchableOpacity, View } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withSpring,
+} from "react-native-reanimated";
+import { mmkv } from "@/src/utils/mmkv";
+import { Ionicons } from "@expo/vector-icons";
+
+export type CalendarItem = {
+  title: string;
+  date: string;
+  type: "evento" | "recordatorio";
+  hour?: number;
+  minute?: number;
+  ampm?: "AM" | "PM";
+  notification?: string;
+  category?: string;
+};
+
+type ReminderContextType = {
+  addReminder: (item: CalendarItem) => void;
+  updateReminder: (index: number, updated: CalendarItem) => void;
+  deleteReminder: (index: number) => void;
+  items: CalendarItem[];
+};
+
+const ReminderContext = createContext<ReminderContextType | null>(null);
+
+export const useReminder = () => useContext(ReminderContext)!;
+
+export const ReminderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [items, setItems] = useState<CalendarItem[]>([]);
+  const [alertActive, setAlertActive] = useState(false);
+  const [activeReminder, setActiveReminder] = useState<CalendarItem | null>(null);
+
+  const fondoParpadeo = useSharedValue(0);
+  const bellScale = useSharedValue(1);
+  const bellRotate = useSharedValue(0);
+  const bellShake = useSharedValue(0);
+  const blinkInterval = useRef<number | null>(null);
+
+  const fondoParpadeanteStyle = useAnimatedStyle(() => {
+    return {
+      backgroundColor: fondoParpadeo.value
+        ? "rgba(255, 0, 0, 0.4)" // rojo translúcido
+        : "rgba(0, 0, 0, 0.5)", // fondo oscuro
+    };
+  });
+
+  const bellAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: bellScale.value },
+      { rotate: `${bellRotate.value}deg` },
+      { translateX: bellShake.value },
+    ],
+  }));
+
+  // Cargar items desde MMKV
+  useEffect(() => {
+    const stored = mmkv.getString("mmkkv-events");
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored) as CalendarItem[];
+      setItems(parsed);
+    } catch {
+      setItems([]);
+    }
+  }, []);
+
+  // Revisar recordatorios cada segundo
+  useEffect(() => {
+    const triggeredReminders = new Set<string>();
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const todayStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+
+      items.forEach((item, idx) => {
+        if (item.type !== "recordatorio" || item.date !== todayStr) return;
+        if (item.hour === undefined || item.minute === undefined) return;
+
+        let itemHour = item.hour % 12;
+        if (item.ampm === "PM") itemHour += 12;
+        const itemMinutes = itemHour * 60 + item.minute;
+
+        const key = `${item.date}-${itemHour}-${item.minute}-${idx}`;
+        if (currentMinutes === itemMinutes && !triggeredReminders.has(key)) {
+          triggeredReminders.add(key);
+          triggerGlobalAlert(item);
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [items]);
+
+  // Disparar alerta global
+  const triggerGlobalAlert = (item: CalendarItem) => {
+    setActiveReminder(item);
+    setAlertActive(true);
+
+    // Parpadeo del fondo
+    if (blinkInterval.current) clearInterval(blinkInterval.current);
+    let on = true;
+    blinkInterval.current = setInterval(() => {
+      fondoParpadeo.value = on ? 1 : 0;
+      on = !on;
+    }, 500);
+
+    // Animación de la campana
+    bellScale.value = withSpring(1.5, { damping: 2, stiffness: 150 }, () => {
+      bellScale.value = withSpring(1);
+    });
+    bellRotate.value = withSequence(
+      withSpring(15, { damping: 3, stiffness: 100 }),
+      withSpring(-10, { damping: 3, stiffness: 100 }),
+      withSpring(0, { damping: 3, stiffness: 100 })
+    );
+    bellShake.value = withSequence(
+      withSpring(-8, { damping: 2, stiffness: 120 }),
+      withSpring(8, { damping: 2, stiffness: 120 }),
+      withSpring(-5, { damping: 2, stiffness: 120 }),
+      withSpring(0, { damping: 2, stiffness: 120 })
+    );
+  };
+
+  // Detener alerta
+  const stopAlert = () => {
+    setAlertActive(false);
+    setActiveReminder(null);
+    fondoParpadeo.value = 0;
+
+    if (blinkInterval.current) {
+      clearInterval(blinkInterval.current);
+      blinkInterval.current = null;
+    }
+  };
+
+  const addReminder = (item: CalendarItem) => {
+    const newItems = [...items, item];
+    setItems(newItems);
+    mmkv.set("mmkkv-events", JSON.stringify(newItems));
+  };
+
+  const updateReminder = (index: number, updated: CalendarItem) => {
+    const newItems = [...items];
+    newItems[index] = updated;
+    setItems(newItems);
+    mmkv.set("mmkkv-events", JSON.stringify(newItems));
+  };
+
+  const deleteReminder = (index: number) => {
+    const newItems = items.filter((_, i) => i !== index);
+    setItems(newItems);
+    mmkv.set("mmkkv-events", JSON.stringify(newItems));
+  };
+
+  return (
+    <ReminderContext.Provider
+      value={{ addReminder, updateReminder, deleteReminder, items }}
+    >
+      {children}
+
+      {alertActive && activeReminder && (
+        <Modal transparent visible animationType="fade" onRequestClose={stopAlert}>
+          {/* Fondo parpadeante */}
+          <Animated.View
+            style={[
+              fondoParpadeanteStyle,
+              { flex: 1, justifyContent: "center", alignItems: "center" },
+            ]}
+          >
+            {/* Tarjeta blanca */}
+            <View
+              style={{
+                width: "75%",
+                backgroundColor: "#fff",
+                padding: 30,
+                borderRadius: 12,
+                alignItems: "center",
+                borderWidth: 4,
+                borderColor: "#fff",
+              }}
+            >
+              <Text style={{ fontSize: 22, fontWeight: "bold" }}>
+                {activeReminder.title}
+              </Text>
+              <Text style={{ marginTop: 10 }}>
+                {activeReminder.hour}:
+                {activeReminder.minute?.toString().padStart(2, "0")}{" "}
+                {activeReminder.ampm}
+              </Text>
+
+              <TouchableOpacity
+                style={{
+                  marginTop: 20,
+                  backgroundColor: "#F03E3E",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+                onPress={stopAlert}
+              >
+                <Text style={{ color: "#fff", fontWeight: "bold" }}>Detener</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </Modal>
+      )}
+    </ReminderContext.Provider>
+  );
+};

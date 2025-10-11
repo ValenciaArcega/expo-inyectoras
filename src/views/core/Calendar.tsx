@@ -1,60 +1,45 @@
-import React, { useState, useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, TextInput, Button, ScrollView, Alert, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
-import { mmkv } from "@/src/utils/mmkv";
-
-type CalendarItem = {
-    title: string;
-    date: string;
-    type: "evento" | "recordatorio";
-    hour?: number;
-    minute?: number;
-    ampm?: "AM" | "PM";
-    notification?: string;
-    category?: "inyeccion" | "ensamble" | "pintura";
-};
+import React, { useState, useEffect, useRef } from "react";
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    TextInput,
+    ScrollView,
+    SafeAreaView,
+    StyleSheet,
+} from "react-native";
+import { Ionicons, Feather } from "@expo/vector-icons";
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withSpring,
+    withSequence,
+    cancelAnimation,
+} from "react-native-reanimated";
+import { useReminder, CalendarItem } from "@/src/context/ReminderContext";
 
 const Calendar: React.FC = () => {
+    const { addReminder, updateReminder, deleteReminder, items } = useReminder();
+
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
 
-    const [items, setItems] = useState<CalendarItem[]>([]);
-    const [modalVisible, setModalVisible] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const [modalViewVisible, setModalViewVisible] = useState(false);
+    const [modalAddVisible, setModalAddVisible] = useState(false);
+
     const [newTitle, setNewTitle] = useState("");
     const [newType, setNewType] = useState<"evento" | "recordatorio">("evento");
-
     const [selectedHour, setSelectedHour] = useState<number>(1);
     const [selectedMinute, setSelectedMinute] = useState<number>(0);
     const [selectedAMPM, setSelectedAMPM] = useState<"AM" | "PM">("AM");
     const [selectedNotification, setSelectedNotification] = useState<string>("10 min antes");
-
-    const [selectedCategory, setSelectedCategory] = useState<"inyeccion" | "ensamble" | "pintura">("inyeccion");
-    const [categoryDropdown, setCategoryDropdown] = useState(false);
-
-    const categoryOptions = [
-        { label: "Inyección", value: "inyeccion", color: "green" },
-        { label: "Ensamble", value: "ensamble", color: "blue" },
-        { label: "Pintura", value: "pintura", color: "orange" },
-    ];
-
-    const [hourDropdown, setHourDropdown] = useState(false);
-    const [minuteDropdown, setMinuteDropdown] = useState(false);
-    const [ampmDropdown, setAMPMDropdown] = useState(false);
-    const [notifDropdown, setNotifDropdown] = useState(false);
-
+    const [selectedCategory, setSelectedCategory] = useState<string>("inyeccion");
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
-    const [editingDate, setEditingDate] = useState<string | null>(null);
 
-    // ALERTA
+    // Animación de campana
     const [alertActive, setAlertActive] = useState(false);
-    const [activeReminder, setActiveReminder] = useState<CalendarItem | null>(null);
-    const alertInterval = useRef<number | null>(null);
-
-    // campana animada
     const bellScale = useSharedValue(1);
     const bellRotate = useSharedValue(0);
     const bellShake = useSharedValue(0);
@@ -67,16 +52,11 @@ const Calendar: React.FC = () => {
         ],
     }));
 
-    // fondo parpadeante
-    const bgRed = useSharedValue(0);
-    const bgAnimatedStyle = useAnimatedStyle(() => ({
-        backgroundColor: bgRed.value ? "rgba(240,62,62,0.6)" : "transparent",
-    }));
-
     const triggerBell = () => {
-        bellScale.value = withSpring(1.5, { damping: 2, stiffness: 150 }, () => {
-            bellScale.value = withSpring(1);
-        });
+        bellScale.value = withSequence(
+            withSpring(1.5, { damping: 2, stiffness: 150 }),
+            withSpring(1, { damping: 2, stiffness: 150 })
+        );
         bellRotate.value = withSequence(
             withSpring(15, { damping: 3, stiffness: 100 }),
             withSpring(-10, { damping: 3, stiffness: 100 }),
@@ -90,174 +70,95 @@ const Calendar: React.FC = () => {
         );
     };
 
-    const triggerAlert = (item: CalendarItem) => {
-        setActiveReminder(item);
-        setAlertActive(true);
-
-        // parpadeo fondo
-        if (alertInterval.current) clearInterval(alertInterval.current);
-        let blink = true;
-        alertInterval.current = setInterval(() => {
-            bgRed.value = blink ? 1 : 0;
-            blink = !blink;
-        }, 500);
-
-        triggerBell();
+    const stopBell = () => {
+        cancelAnimation(bellScale);
+        cancelAnimation(bellRotate);
+        cancelAnimation(bellShake);
+        bellScale.value = 1;
+        bellRotate.value = 0;
+        bellShake.value = 0;
     };
 
-    const stopAlert = () => {
-        if (alertInterval.current) {
-            clearInterval(alertInterval.current);
-            alertInterval.current = null;
-        }
-        bgRed.value = 0;
-        setAlertActive(false);
-        setActiveReminder(null);
-    };
-
-    // cargar datos de MMKV
     useEffect(() => {
-        const passEvents = mmkv.getString("mmkkv-events");
-        if (!passEvents) return;
-        setItems(JSON.parse(passEvents));
-    }, []);
+        if (alertActive) triggerBell();
+        else stopBell();
+    }, [alertActive]);
 
-    const scrollRef = useRef<ScrollView>(null);
-    const monthLayouts = useRef<{ [key: number]: number }>({});
     useEffect(() => {
-        const timeout = setTimeout(() => {
-            const y = monthLayouts.current[currentMonth];
-            if (scrollRef.current && y !== undefined) {
-                scrollRef.current.scrollTo({ y, animated: false });
-            }
-        }, 300);
-        return () => clearTimeout(timeout);
-    }, []);
-
-    // check recordatorios
-    useEffect(() => {
-        const triggeredReminders = new Set<string>();
-
-        const checkReminders = () => {
+        const interval = setInterval(() => {
             const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            const currentDateStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
 
-            items.forEach((item, idx) => {
-                if (
-                    item.type === "recordatorio" &&
-                    item.date === currentDateStr &&
-                    item.hour !== undefined &&
-                    item.minute !== undefined
-                ) {
-                    let itemHour = item.hour % 12;
-                    if (item.ampm === "PM") itemHour += 12;
+            const hasReminderNow = items.some((item) => {
+                if (item.type !== "recordatorio") return false;
+                const [hour, minute] = [item.hour ?? 0, item.minute ?? 0];
+                let reminderHour = item.ampm === "PM" && hour < 12 ? hour + 12 : hour;
+                reminderHour = item.ampm === "AM" && hour === 12 ? 0 : reminderHour;
 
-                    const reminderKey = `${item.date}-${itemHour}-${item.minute}-${idx}`;
-
-                    if (
-                        itemHour === currentHour &&
-                        item.minute === currentMinute &&
-                        !triggeredReminders.has(reminderKey)
-                    ) {
-                        triggeredReminders.add(reminderKey);
-                        triggerAlert(item);
-                    }
-                }
+                return (
+                    item.date === `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}` &&
+                    reminderHour === now.getHours() &&
+                    minute === now.getMinutes()
+                );
             });
-        };
 
-        const interval = setInterval(checkReminders, 1000);
+            setAlertActive(hasReminderNow);
+        }, 1000);
+
         return () => clearInterval(interval);
     }, [items]);
 
-    // agregar o editar evento
-    const addItem = () => {
-        try {
-            if (!newTitle || !newTitle.trim()) throw new Error("Asegúrate de ingresar un título");
-            if (!selectedDate) throw new Error("Selecciona una fecha");
-
-            let newItems = [...items];
-
-            if (editingIndex !== null && editingDate === selectedDate) {
-                newItems[editingIndex] = {
-                    title: newTitle,
-                    date: selectedDate,
-                    type: newType,
-                    hour: selectedHour,
-                    minute: selectedMinute,
-                    ampm: selectedAMPM,
-                    notification: selectedNotification,
-                    category: selectedCategory,
-                };
-            } else {
-                newItems.push({
-                    title: newTitle,
-                    date: selectedDate,
-                    type: newType,
-                    hour: selectedHour,
-                    minute: selectedMinute,
-                    ampm: selectedAMPM,
-                    notification: selectedNotification,
-                    category: selectedCategory,
-                });
-            }
-
-            setItems(newItems);
-            mmkv.set("mmkkv-events", JSON.stringify(newItems));
-
-            // reset
-            setNewTitle("");
-            setNewType("evento");
-            setSelectedHour(1);
-            setSelectedMinute(0);
-            setSelectedAMPM("AM");
-            setSelectedNotification("10 min antes");
-            setSelectedCategory("inyeccion");
-            setEditingIndex(null);
-            setEditingDate(null);
-            setModalVisible(false);
-
-        } catch (ex: any) {
-            Alert.alert("Atención", ex.message);
-        }
-    };
-
-    const deleteItem = (index: number, date: string) => {
-        const newItems = items.filter((it, idx) => !(it.date === date && idx === index));
-        setItems(newItems);
-        mmkv.set("mmkkv-events", JSON.stringify(newItems));
-    };
-
-    const startEditing = (item: CalendarItem, index: number) => {
-        setNewTitle(item.title);
-        setNewType(item.type);
-        setSelectedHour(item.hour || 1);
-        setSelectedMinute(item.minute || 0);
-        setSelectedAMPM(item.ampm || "AM");
-        setSelectedNotification(item.notification || "10 min antes");
-        setSelectedCategory(item.category || "inyeccion");
-
-        setEditingIndex(index);
-        setEditingDate(item.date);
-        setSelectedDate(item.date);
-        setModalVisible(true);
-    };
-
-    const handleEventPress = (item: CalendarItem, index: number) => {
-        Alert.alert(
-            "Evento",
-            item.title,
-            [
-                { text: "Editar", onPress: () => startEditing(item, index) },
-                { text: "Borrar", style: "destructive", onPress: () => deleteItem(index, item.date) },
-                { text: "Cancelar", style: "cancel" },
-            ]
+    const isSameItem = (a: CalendarItem, b: CalendarItem) => {
+        if (!a || !b) return false;
+        return (
+            a.title === b.title &&
+            a.date === b.date &&
+            a.type === b.type &&
+            (a.hour ?? -1) === (b.hour ?? -1) &&
+            (a.minute ?? -1) === (b.minute ?? -1) &&
+            (a.ampm ?? "") === (b.ampm ?? "") &&
+            (a.notification ?? "") === (b.notification ?? "") &&
+            (a.category ?? "") === (b.category ?? "")
         );
     };
 
-    // render meses
+    const saveItem = () => {
+        if (!newTitle || !selectedDate) return;
+
+        const newItem: CalendarItem = {
+            title: newTitle,
+            date: selectedDate,
+            type: newType,
+            hour: newType === "recordatorio" ? selectedHour : undefined,
+            minute: newType === "recordatorio" ? selectedMinute : undefined,
+            ampm: newType === "recordatorio" ? selectedAMPM : undefined,
+            notification: newType === "recordatorio" ? selectedNotification : undefined,
+            category: newType === "recordatorio" ? selectedCategory : undefined,
+        };
+
+        if (editingIndex !== null && editingIndex >= 0 && editingIndex < items.length) {
+            updateReminder(editingIndex, newItem);
+        } else {
+            addReminder(newItem);
+        }
+
+        resetForm();
+    };
+
+    const resetForm = () => {
+        setNewTitle("");
+        setNewType("evento");
+        setSelectedHour(1);
+        setSelectedMinute(0);
+        setSelectedAMPM("AM");
+        setSelectedNotification("10 min antes");
+        setSelectedCategory("inyeccion");
+        setEditingIndex(null);
+        setModalAddVisible(false);
+    };
+
+    const scrollRef = useRef<ScrollView>(null);
+    const [monthPositions, setMonthPositions] = useState<number[]>([]);
+
     const renderMonth = (month: number, year: number) => {
         const firstDay = new Date(year, month, 1).getDay();
         const totalDays = new Date(year, month + 1, 0).getDate();
@@ -265,24 +166,49 @@ const Calendar: React.FC = () => {
             .fill(null)
             .concat(Array.from({ length: totalDays }, (_, i) => i + 1));
 
-        const monthName = new Date(year, month).toLocaleDateString("es-MX", { month: "long", year: "numeric" });
-        const formattedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase();
-
+        const monthName = new Date(year, month).toLocaleDateString("es-MX", {
+            month: "long",
+            year: "numeric",
+        });
+        const formattedMonth =
+            monthName.charAt(0).toUpperCase() + monthName.slice(1).toLowerCase();
         const weekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
         return (
             <View
                 key={`${year}-${month}`}
                 style={{ marginBottom: 40 }}
-                onLayout={(event) => { monthLayouts.current[month] = event.nativeEvent.layout.y; }}
+                onLayout={(event) => {
+                    const y = event.nativeEvent.layout.y;
+                    setMonthPositions((prev) => {
+                        const copy = [...prev];
+                        copy[month] = y;
+                        return copy;
+                    });
+                }}
             >
-                <Text style={{ fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 10 }}>
+                <Text
+                    style={{
+                        fontSize: 22,
+                        fontWeight: "bold",
+                        textAlign: "center",
+                        marginBottom: 10,
+                    }}
+                >
                     {formattedMonth}
                 </Text>
 
                 <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
                     {weekDays.map((d, i) => (
-                        <Text key={i} style={{ fontWeight: "bold", width: 40, textAlign: "center", color: "#555" }}>
+                        <Text
+                            key={i}
+                            style={{
+                                fontWeight: "bold",
+                                width: 40,
+                                textAlign: "center",
+                                color: "#555",
+                            }}
+                        >
                             {d}
                         </Text>
                     ))}
@@ -290,26 +216,39 @@ const Calendar: React.FC = () => {
 
                 <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
                     {daysArray.map((day, i) => {
-                        if (!day) return (
-                            <View key={i} style={{ width: "14.2%", borderWidth: 0.5, borderColor: "#eee", minHeight: 120 }} />
-                        );
+                        if (!day)
+                            return (
+                                <View
+                                    key={i}
+                                    style={{
+                                        width: "14.2%",
+                                        borderWidth: 0.5,
+                                        borderColor: "#eee",
+                                        minHeight: 120,
+                                    }}
+                                />
+                            );
 
                         const dateStr = `${year}-${month + 1}-${day}`;
+                        const isToday =
+                            day === today.getDate() &&
+                            month === today.getMonth() &&
+                            year === today.getFullYear();
+
+                        // FILTRAR ITEMS DE ESTE DÍA
                         const dayItems = items.filter((it) => it.date === dateStr);
-                        const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
 
                         return (
-                            <TouchableOpacity
+                            <View
                                 key={i}
                                 style={{
                                     width: "14.2%",
                                     borderWidth: 0.5,
                                     borderColor: "#eee",
                                     minHeight: 120,
-                                    padding: 2,
+                                    padding: 4,
                                     borderRadius: isToday ? 6 : 0,
                                 }}
-                                onPress={() => { setSelectedDate(dateStr); setModalVisible(true); }}
                             >
                                 <Text
                                     style={{
@@ -324,42 +263,82 @@ const Calendar: React.FC = () => {
                                         lineHeight: 24,
                                         textAlignVertical: "center",
                                         alignSelf: "center",
-                                        marginBottom: 4,
+                                        marginBottom: 6,
                                     }}
                                 >
                                     {day}
                                 </Text>
-                                {dayItems.map((it, idx) => (
-                                    <TouchableOpacity
-                                        key={idx}
-                                        style={{
-                                            backgroundColor: it.type === "evento" ? "#BFECF5" : "#F5D6BF",
-                                            borderRadius: 8,
-                                            paddingHorizontal: 3,
-                                            marginTop: 2,
-                                            flexDirection: "row",
-                                            alignItems: "center",
-                                        }}
-                                        onPress={() => handleEventPress(it, idx)}
-                                    >
-                                        {it.category && (
+
+                                <TouchableOpacity
+                                    style={{
+                                        width: "100%",
+                                        alignItems: "center",
+                                        marginVertical: 4,
+                                    }}
+                                    onPress={() => {
+                                        setSelectedDate(dateStr);
+                                        if (dayItems.length > 0) {
+                                            setModalViewVisible(true);
+                                        } else {
+                                            setEditingIndex(null);
+                                            setModalAddVisible(true);
+                                        }
+                                    }}
+                                >
+                                    {dayItems.length > 0 ? (
+                                        <View
+                                            style={{
+                                                alignSelf: "center",
+                                                paddingHorizontal: 8,
+                                                paddingVertical: 6,
+                                                borderRadius: 6,
+                                                backgroundColor: "#F3FFEE",
+                                                flexDirection: "row",
+                                                alignItems: "center",
+                                                borderWidth: 1,
+                                                borderColor: "#BBECA5",
+                                            }}
+                                        >
+                                            <Text
+                                                style={{
+                                                    fontSize: 12,
+                                                    fontWeight: "bold",
+                                                    marginRight: 6,
+                                                }}
+                                            >
+                                                Ver
+                                            </Text>
                                             <View
                                                 style={{
-                                                    width: 8,
-                                                    height: 8,
-                                                    borderRadius: 4,
-                                                    backgroundColor: categoryOptions.find((c) => c.value === it.category)?.color || "gray",
-                                                    marginRight: 4,
+                                                    backgroundColor: "#4CAF50",
+                                                    borderRadius: 10,
+                                                    paddingHorizontal: 6,
+                                                    paddingVertical: 2,
+                                                    minWidth: 20,
+                                                    alignItems: "center",
                                                 }}
-                                            />
-                                        )}
-                                        <Text style={{ fontSize: 12, color: "#333", flexShrink: 1, flexWrap: "wrap" }}>
-                                            {it.title}{" "}
-                                            {it.type === "recordatorio" && `- ${it.hour}:${it.minute?.toString().padStart(2, "0")} ${it.ampm}`}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </TouchableOpacity>
+                                            >
+                                                <Text
+                                                    style={{
+                                                        color: "#fff",
+                                                        fontWeight: "bold",
+                                                        fontSize: 12,
+                                                    }}
+                                                >
+                                                    {dayItems.length}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    ) : (
+                                        <View
+                                            style={{
+                                                height: 50, // área presionable grande
+                                                width: "100%",
+                                            }}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            </View>
                         );
                     })}
                 </View>
@@ -367,201 +346,190 @@ const Calendar: React.FC = () => {
         );
     };
 
-    // ComboBox genérico
-    const ComboBox = ({ label, selected, setSelected, options, dropdownOpen, setDropdownOpen }: any) => (
-        <View style={{ marginBottom: 10 }}>
-            <Text style={{ fontWeight: "bold", marginBottom: 5 }}>{label}</Text>
-            <TouchableOpacity
-                style={{ borderWidth: 1, borderColor: "#ccc", padding: 10, borderRadius: 5, backgroundColor: "#f9f9f9" }}
-                onPress={() => setDropdownOpen(!dropdownOpen)}
-            >
-                <Text>{selected}</Text>
-            </TouchableOpacity>
+    useEffect(() => {
+        if (scrollRef.current && monthPositions[currentMonth] !== undefined) {
+            scrollRef.current.scrollTo({
+                y: monthPositions[currentMonth],
+                animated: false,
+            });
+        }
+    }, [monthPositions]);
 
-            {dropdownOpen && (
-                <ScrollView
-                    style={{ maxHeight: 150, borderWidth: 1, borderColor: "#ccc", marginTop: 5, borderRadius: 5 }}
-                    nestedScrollEnabled={true}
-                >
-                    {options.map((opt: any, idx: number) => (
-                        <TouchableOpacity
-                            key={idx}
-                            style={{ padding: 10, backgroundColor: selected === opt ? "#eee" : "#fff" }}
-                            onPress={() => { setSelected(opt); setDropdownOpen(false); }}
-                        >
-                            <Text>{opt}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            )}
-        </View>
-    );
-
-    const CategoryComboBox = () => (
-        <View style={{ marginBottom: 10 }}>
-            <Text style={{ fontWeight: "bold", marginBottom: 5 }}>Categoría</Text>
-            <TouchableOpacity
-                style={{
-                    borderWidth: 1, borderColor: "#ccc", padding: 10, borderRadius: 5,
-                    backgroundColor: "#f9f9f9", flexDirection: "row", alignItems: "center",
-                }}
-                onPress={() => setCategoryDropdown(!categoryDropdown)}
-            >
-                <View
-                    style={{
-                        width: 12, height: 12, borderRadius: 6,
-                        backgroundColor: categoryOptions.find((c) => c.value === selectedCategory)?.color || "gray",
-                        marginRight: 8,
-                    }}
-                />
-                <Text>{categoryOptions.find((c) => c.value === selectedCategory)?.label}</Text>
-            </TouchableOpacity>
-            {categoryDropdown && (
-                <ScrollView style={{ maxHeight: 120, borderWidth: 1, borderColor: "#ccc", marginTop: 5 }}>
-                    {categoryOptions.map((opt, idx) => (
-                        <TouchableOpacity
-                            key={idx}
-                            style={{
-                                padding: 10,
-                                backgroundColor: selectedCategory === opt.value ? "#eee" : "#fff",
-                                flexDirection: "row",
-                                alignItems: "center",
-                            }}
-                            onPress={() => { setSelectedCategory(opt.value as any); setCategoryDropdown(false); }}
-                        >
-                            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: opt.color, marginRight: 8 }} />
-                            <Text>{opt.label}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            )}
-        </View>
-    );
+    const eventsForSelectedDay = items.filter((it) => it.date === selectedDate);
+    const findItemIndex = (item: CalendarItem) => items.findIndex((it) => isSameItem(it, item));
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-            {/* Fondo parpadeante */}
-            <Animated.View style={[StyleSheet.absoluteFill, bgAnimatedStyle]} />
-
-            {/* campana */}
-            <Animated.View style={[{ position: "absolute", top: 10, right: 20, zIndex: 10 }, bellAnimatedStyle]}>
-                <Ionicons name="notifications-outline" size={44} color="#F03E3E" />
+            <Animated.View
+                style={[{ position: "absolute", top: 20, right: 20, zIndex: 10 }, bellAnimatedStyle]}
+            >
+                <Ionicons name="notifications-outline" size={40} color="#f03e3e" />
             </Animated.View>
 
-            {/* overlay alerta */}
-            {alertActive && activeReminder && (
-                <Animated.View
-                    style={{
-                        position: "absolute",
-                        top: "30%",
-                        left: "10%",
-                        right: "10%",
-                        backgroundColor: "#fff",
-                        padding: 20,
-                        borderRadius: 12,
-                        alignItems: "center",
-                        zIndex: 20,
-                        elevation: 10,
-                    }}
-                >
-                    <Text style={{ fontSize: 16, fontWeight: "bold" }}>{activeReminder.title}</Text>
-                    <Text style={{ marginTop: 10 }}>
-                        {activeReminder.hour}:{activeReminder.minute?.toString().padStart(2, "0")} {activeReminder.ampm}
-                    </Text>
-                    <TouchableOpacity
-                        style={{
-                            marginTop: 20,
-                            backgroundColor: "#F03E3E",
-                            paddingHorizontal: 20,
-                            paddingVertical: 10,
-                            borderRadius: 8,
-                        }}
-                        onPress={stopAlert}
-                    >
-                        <Text style={{ color: "#fff", fontWeight: "bold" }}>Detener</Text>
-                    </TouchableOpacity>
-                </Animated.View>
-            )}
-
-            {/* calendario */}
             <ScrollView ref={scrollRef}>
                 {Array.from({ length: 12 }, (_, i) => renderMonth(i, currentYear))}
             </ScrollView>
 
-            {/* modal */}
-            {modalVisible && (
-                <View
-                    style={{
-                        position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center",
-                    }}
-                >
-                    <ScrollView
-                        style={{
-                            backgroundColor: "#fff",
-                            borderRadius: 10,
-                            padding: 20,
-                            width: "85%",
-                            maxHeight: "90%",
-                        }}
-                        contentContainerStyle={{ paddingBottom: 50 }}
-                    >
-                        <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
-                            {editingIndex !== null ? "Editar" : "Nuevo"} {newType === "recordatorio" ? "Recordatorio" : "Evento"}
+            {/* MODAL 1: Ver eventos */}
+            {modalViewVisible && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalBox}>
+                        <Text style={styles.modalTitle}>Eventos - {selectedDate}</Text>
+
+                        <ScrollView style={{ maxHeight: 300 }}>
+                            {eventsForSelectedDay.length === 0 ? (
+                                <Text style={{ textAlign: "center", marginTop: 20 }}>
+                                    No hay eventos ni recordatorios.
+                                </Text>
+                            ) : (
+                                eventsForSelectedDay.map((item, idx) => {
+                                    const globalIndex = findItemIndex(item);
+
+                                    return (
+                                        <View
+                                            key={idx}
+                                            style={{
+                                                backgroundColor: "#f5f5f5",
+                                                padding: 10,
+                                                borderRadius: 8,
+                                                marginVertical: 5,
+                                                flexDirection: "row",
+                                                alignItems: "center",
+                                                justifyContent: "space-between",
+                                            }}
+                                        >
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
+                                                {item.type === "recordatorio" && (
+                                                    <Text style={{ fontSize: 12, color: "#555" }}>
+                                                        {item.hour}:{item.minute?.toString().padStart(2, "0")}{" "}
+                                                        {item.ampm} - {item.category}
+                                                    </Text>
+                                                )}
+                                            </View>
+
+                                            <View style={{ flexDirection: "row" }}>
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        if (globalIndex === -1) return;
+                                                        setEditingIndex(globalIndex);
+
+                                                        const it = items[globalIndex];
+                                                        setNewTitle(it.title);
+                                                        setNewType(it.type);
+                                                        setSelectedHour(it.hour ?? 1);
+                                                        setSelectedMinute(it.minute ?? 0);
+                                                        setSelectedAMPM(it.ampm ?? "AM");
+                                                        setSelectedNotification(it.notification ?? "10 min antes");
+                                                        setSelectedCategory(it.category ?? "inyeccion");
+
+                                                        setModalViewVisible(false);
+                                                        setModalAddVisible(true);
+                                                    }}
+                                                    style={{ marginRight: 10 }}
+                                                >
+                                                    <Feather name="edit-3" size={20} color="#333" />
+                                                </TouchableOpacity>
+
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        if (globalIndex === -1) return;
+                                                        deleteReminder(globalIndex);
+                                                    }}
+                                                >
+                                                    <Feather name="trash-2" size={20} color="#f03e3e" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    );
+                                })
+                            )}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            onPress={() => {
+                                setEditingIndex(null);
+                                setModalViewVisible(false);
+                                setModalAddVisible(true);
+                            }}
+                            style={styles.addButton}
+                        >
+                            <Ionicons name="add" size={28} color="white" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setModalViewVisible(false)} style={styles.closeButton}>
+                            <Text style={{ color: "#f03e3e", fontWeight: "bold" }}>Cerrar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+
+            {/* MODAL 2: Agregar/Editar */}
+            {modalAddVisible && (
+                <View style={styles.modalOverlay}>
+                    <ScrollView style={styles.modalBox}>
+                        <Text style={styles.modalTitle}>
+                            {editingIndex !== null ? "Editar" : "Nuevo"}{" "}
+                            {newType === "recordatorio" ? "Recordatorio" : "Evento"}
                         </Text>
 
-                        <TextInput
-                            style={{ borderWidth: 1, borderColor: "#ccc", padding: 8, marginBottom: 10, borderRadius: 5 }}
-                            placeholder="Título"
-                            value={newTitle}
-                            onChangeText={setNewTitle}
-                        />
+                        <Text style={{ marginBottom: 6, color: "#333" }}>Fecha: {selectedDate || "-"}</Text>
 
-                        <View style={{ flexDirection: "row", justifyContent: "space-around", marginBottom: 10 }}>
-                            <Button
-                                title="Evento"
+                        <TextInput style={styles.input} placeholder="Título" value={newTitle} onChangeText={setNewTitle} />
+
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
+                            <TouchableOpacity
                                 onPress={() => setNewType("evento")}
-                                disabled={newType === "evento"}
-                                color={newType === "evento" ? "#505050" : "#ccc"}
-                            />
-                            <Button
-                                title="Recordatorio"
+                                style={[styles.toggleButton, { backgroundColor: newType === "evento" ? "#505050" : "#ddd" }]}
+                            >
+                                <Text style={{ color: "#fff", fontWeight: "bold" }}>Evento</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
                                 onPress={() => setNewType("recordatorio")}
-                                disabled={newType === "recordatorio"}
-                                color={newType === "recordatorio" ? "#505050" : "#ccc"}
-                            />
+                                style={[styles.toggleButton, { backgroundColor: newType === "recordatorio" ? "#505050" : "#ddd" }]}
+                            >
+                                <Text style={{ color: "#fff", fontWeight: "bold" }}>Recordatorio</Text>
+                            </TouchableOpacity>
                         </View>
 
                         {newType === "recordatorio" && (
                             <>
-                                <ComboBox
-                                    label="Hora" selected={selectedHour} setSelected={setSelectedHour}
-                                    options={Array.from({ length: 12 }, (_, i) => i + 1)}
-                                    dropdownOpen={hourDropdown} setDropdownOpen={setHourDropdown}
-                                />
-                                <ComboBox
-                                    label="Minutos" selected={selectedMinute} setSelected={setSelectedMinute}
-                                    options={Array.from({ length: 60 }, (_, i) => i)}
-                                    dropdownOpen={minuteDropdown} setDropdownOpen={setMinuteDropdown}
-                                />
-                                <ComboBox
-                                    label="AM/PM" selected={selectedAMPM} setSelected={setSelectedAMPM}
-                                    options={["AM", "PM"]}
-                                    dropdownOpen={ampmDropdown} setDropdownOpen={setAMPMDropdown}
-                                />
-                                <ComboBox
-                                    label="Notificación" selected={selectedNotification} setSelected={setSelectedNotification}
-                                    options={["-", "10 min antes", "30 min antes", "1 hora antes"]}
-                                    dropdownOpen={notifDropdown} setDropdownOpen={setNotifDropdown}
-                                />
-                                <CategoryComboBox />
+                                <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
+                                    <TextInput
+                                        placeholder="HH"
+                                        keyboardType="numeric"
+                                        value={String(selectedHour)}
+                                        onChangeText={(t) => setSelectedHour(Number(t))}
+                                        style={[styles.input, { flex: 1, marginRight: 5 }]}
+                                    />
+                                    <TextInput
+                                        placeholder="MM"
+                                        keyboardType="numeric"
+                                        value={String(selectedMinute)}
+                                        onChangeText={(t) => setSelectedMinute(Number(t))}
+                                        style={[styles.input, { flex: 1, marginRight: 5 }]}
+                                    />
+                                    <TouchableOpacity
+                                        onPress={() => setSelectedAMPM(selectedAMPM === "AM" ? "PM" : "AM")}
+                                        style={[styles.input, { flex: 1, justifyContent: "center", alignItems: "center" }]}
+                                    >
+                                        <Text>{selectedAMPM}</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <TextInput placeholder="Notificación" value={selectedNotification} onChangeText={setSelectedNotification} style={styles.input} />
+                                <TextInput placeholder="Categoría" value={selectedCategory} onChangeText={setSelectedCategory} style={styles.input} />
                             </>
                         )}
 
-                        <View style={{ flexDirection: "row", justifyContent: "space-evenly", marginTop: 10 }}>
-                            <Button title="Guardar" onPress={addItem} />
-                            <Button title="Cancelar" color="#F03E3E" onPress={() => setModalVisible(false)} />
-                        </View>
+                        <TouchableOpacity onPress={saveItem} style={styles.saveButton}>
+                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Guardar</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={resetForm} style={styles.closeButton}>
+                            <Text style={{ color: "#f03e3e", fontWeight: "bold" }}>Cancelar</Text>
+                        </TouchableOpacity>
                     </ScrollView>
                 </View>
             )}
@@ -570,3 +538,59 @@ const Calendar: React.FC = () => {
 };
 
 export default Calendar;
+
+const styles = StyleSheet.create({
+    modalOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.4)",
+    },
+    modalBox: {
+        backgroundColor: "#fff",
+        borderRadius: 10,
+        padding: 20,
+        width: "90%",
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginBottom: 15,
+        textAlign: "center",
+    },
+    addButton: {
+        backgroundColor: "#4caf50",
+        borderRadius: 50,
+        alignSelf: "center",
+        padding: 10,
+        marginTop: 10,
+    },
+    closeButton: {
+        marginTop: 10,
+        alignSelf: "center",
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 8,
+        padding: 8,
+        marginBottom: 10,
+    },
+    toggleButton: {
+        flex: 1,
+        padding: 10,
+        borderRadius: 8,
+        marginHorizontal: 5,
+        alignItems: "center",
+    },
+    saveButton: {
+        backgroundColor: "#505050",
+        padding: 10,
+        borderRadius: 8,
+        alignItems: "center",
+    },
+});
