@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigation } from "@react-navigation/native";
-import { View, Text, Dimensions, ScrollView, TouchableOpacity, } from 'react-native';
+import { View, Text, Dimensions, ScrollView, TouchableOpacity, Modal, } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS, } from 'react-native-reanimated';
@@ -20,7 +20,7 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 const BUTTON_WIDTH =
     (SCREEN_WIDTH - (COLUMNS - 1) * SPACING - PADDING_HORIZONTAL * 2) / COLUMNS;
 
-const DraggableButton = ({ btn, index, positions, buttonHeight }) => {
+const DraggableButton = ({ btn, index, positions, buttonHeight, setIsVisible }) => {
     const go = useNavigation();
     const offset = useSharedValue({ x: 0, y: 0 });
     const start = useSharedValue({ x: 0, y: 0 });
@@ -31,6 +31,8 @@ const DraggableButton = ({ btn, index, positions, buttonHeight }) => {
                 go.navigate(btn.route);
             }
             if (btn.id === 5) go.navigate('FileViewer');
+
+            setIsVisible(false)
         } catch (err) {
             console.warn("Error during navigation:", err);
         }
@@ -120,6 +122,7 @@ const DraggableButton = ({ btn, index, positions, buttonHeight }) => {
 
 const ControlCenter = () => {
     const insets = useSafeAreaInsets();
+    const [isVisible, setIsVisible]= useState (true)
 
     const ROWS = Math.ceil(buttonsData.length / COLUMNS);
     const verticalSpacing = (ROWS - 1) * SPACING;
@@ -134,13 +137,23 @@ const ControlCenter = () => {
 
         })
     );
+    const fechaActual = new Date();
+  const fechaFormateada = fechaActual.toLocaleDateString(); 
+  const horaFormateada = fechaActual.toLocaleTimeString();   
 
     return (
-        <View
-            className="bg-[#f2f2f7] dark:bg-[#343a40] flex-1"
+        <Modal visible={isVisible} supportedOrientations={['landscape']} >
+            <View
+            className="bg-[#f2f2f7] dark:bg-[#343a40] flex-1 "
             style={{ paddingHorizontal: PADDING_HORIZONTAL }}
         >
+            <View
+            className='w-[20%] flex-wrap'>
+                <Text className='text-4xl font-bold tracking-tight'>  {fechaFormateada}  </Text>
+                <Text className='text-4xl font-bold tracking-tight'> {horaFormateada}  </Text>
+            </View>
             <ScrollView contentContainerStyle={gs.scroll}>
+
                 <View style={{ flex: 1, minHeight: SCREEN_HEIGHT }}>
                     {buttonsData.map((btn, i) => (
                         <DraggableButton
@@ -149,11 +162,14 @@ const ControlCenter = () => {
                             index={i}
                             positions={positions}
                             buttonHeight={BUTTON_HEIGHT}
+                            setIsVisible={setIsVisible}
                         />
                     ))}
                 </View>
             </ScrollView>
         </View>
+        </Modal>
+
     );
 };
 

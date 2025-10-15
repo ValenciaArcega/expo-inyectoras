@@ -2,16 +2,18 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ControlCenter from '@core/ControlCenter';
 import Calendar from '@core/Calendar';
-import { View } from 'react-native';
 import MyWebView from '../views/core/FileViewer';
 import Andon from '../views/core/Andon';
 import Dashboard from '../views/core/Dashboard';
 import Variables from '../views/core/Variables';
+import { View } from 'react-native';
+import Board from '../views/core/Board';
 
 const Stack = createNativeStackNavigator();
 
 const Router = function () {
-	return <Stack.Navigator>
+	return <View className='w-full h-full'> 
+	<Stack.Navigator>
 		<Stack.Screen
 			name='ControlCenter'
 			component={ControlCenter}
@@ -22,6 +24,10 @@ const Router = function () {
 		<Stack.Screen
 			name='Calendar'
 			component={Calendar}
+			options={{
+				headerShown: false,
+			}}
+			
 		/>
 		<Stack.Screen
 			name='Andon'
@@ -51,8 +57,16 @@ const Router = function () {
 				headerShown: false,
 			}}
 		/>
+		<Stack.Screen
+			name='Board'
+			component={Board}
+			options={{
+				headerShown: false,
+			}}
+		/>
 
 	</Stack.Navigator>
+	</View>
 }
 
 export default Router

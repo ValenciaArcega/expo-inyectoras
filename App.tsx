@@ -3,11 +3,12 @@ import "./global.css";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Router from "@routes/RouterRoot";
 import { NavigationContainer } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { cssInterop } from "nativewind";
 import { StatusBar } from "expo-status-bar";
-import { Image, View } from "react-native";
+import { Image } from "react-native";
 import { ReminderProvider } from "@/src/context/ReminderContext";
+import LayoutSidebar from "./src/components/LayoutSiderbar";
 
 cssInterop(Ionicons, {
   className: {
@@ -30,17 +31,28 @@ const App = function () {
       source={require("@/assets/illustrations/splash.gif")}
       className="w-full h-full" />
 
+
+
   return (
+
     <ReminderProvider>
+
       <NavigationContainer>
+
         <GestureHandlerRootView>
           <StatusBar
             style='auto' />
-          <Router />
+          <LayoutSidebar>
+            <Router
+            />
+          </LayoutSidebar>
 
         </GestureHandlerRootView>
+
       </NavigationContainer>
+
     </ReminderProvider>
+
   );
 }
 export default App
