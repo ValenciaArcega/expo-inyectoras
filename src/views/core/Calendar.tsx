@@ -1,21 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    TextInput,
-    ScrollView,
-    SafeAreaView,
-    StyleSheet,
-} from "react-native";
-import { Ionicons, Feather } from "@expo/vector-icons";
-import Animated, {
-    useSharedValue,
-    useAnimatedStyle,
-    withSpring,
-    withSequence,
-    cancelAnimation,
-} from "react-native-reanimated";
+import { View, Text, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StyleSheet, Alert, } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, cancelAnimation, } from "react-native-reanimated";
 import { useReminder, CalendarItem } from "@/src/context/ReminderContext";
 
 const Calendar: React.FC = () => {
@@ -26,8 +12,8 @@ const Calendar: React.FC = () => {
     const currentMonth = today.getMonth();
 
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
-    const [modalViewVisible, setModalViewVisible] = useState(false);
-    const [modalAddVisible, setModalAddVisible] = useState(false);
+    const [modalEventVisible, setModalEventVisible] = useState(false);
+    const [modalDayVisible, setModalDayVisible] = useState(false);
 
     const [newTitle, setNewTitle] = useState("");
     const [newType, setNewType] = useState<"evento" | "recordatorio">("evento");
@@ -37,8 +23,12 @@ const Calendar: React.FC = () => {
     const [selectedNotification, setSelectedNotification] = useState<string>("10 min antes");
     const [selectedCategory, setSelectedCategory] = useState<string>("inyeccion");
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [showHourList, setShowHourList] = useState(false);
+    const [showMinuteList, setShowMinuteList] = useState(false);
+    const [showNotifList, setShowNotifList] = useState(false);
+    const [showCatList, setShowCatList] = useState(false);
 
-    // Animación de campana
+    // Animación campana
     const [alertActive, setAlertActive] = useState(false);
     const bellScale = useSharedValue(1);
     const bellRotate = useSharedValue(0);
@@ -53,21 +43,9 @@ const Calendar: React.FC = () => {
     }));
 
     const triggerBell = () => {
-        bellScale.value = withSequence(
-            withSpring(1.5, { damping: 2, stiffness: 150 }),
-            withSpring(1, { damping: 2, stiffness: 150 })
-        );
-        bellRotate.value = withSequence(
-            withSpring(15, { damping: 3, stiffness: 100 }),
-            withSpring(-10, { damping: 3, stiffness: 100 }),
-            withSpring(0, { damping: 3, stiffness: 100 })
-        );
-        bellShake.value = withSequence(
-            withSpring(-8, { damping: 2, stiffness: 120 }),
-            withSpring(8, { damping: 2, stiffness: 120 }),
-            withSpring(-5, { damping: 2, stiffness: 120 }),
-            withSpring(0, { damping: 2, stiffness: 120 })
-        );
+        bellScale.value = withSequence(withSpring(1.5), withSpring(1));
+        bellRotate.value = withSequence(withSpring(15), withSpring(-10), withSpring(0));
+        bellShake.value = withSequence(withSpring(-8), withSpring(8), withSpring(0));
     };
 
     const stopBell = () => {
@@ -87,45 +65,37 @@ const Calendar: React.FC = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             const now = new Date();
-
             const hasReminderNow = items.some((item) => {
                 if (item.type !== "recordatorio") return false;
                 const [hour, minute] = [item.hour ?? 0, item.minute ?? 0];
                 let reminderHour = item.ampm === "PM" && hour < 12 ? hour + 12 : hour;
                 reminderHour = item.ampm === "AM" && hour === 12 ? 0 : reminderHour;
-
                 return (
                     item.date === `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}` &&
                     reminderHour === now.getHours() &&
                     minute === now.getMinutes()
                 );
             });
-
             setAlertActive(hasReminderNow);
         }, 1000);
-
         return () => clearInterval(interval);
     }, [items]);
 
-    const isSameItem = (a: CalendarItem, b: CalendarItem) => {
-        if (!a || !b) return false;
-        return (
-            a.title === b.title &&
-            a.date === b.date &&
-            a.type === b.type &&
-            (a.hour ?? -1) === (b.hour ?? -1) &&
-            (a.minute ?? -1) === (b.minute ?? -1) &&
-            (a.ampm ?? "") === (b.ampm ?? "") &&
-            (a.notification ?? "") === (b.notification ?? "") &&
-            (a.category ?? "") === (b.category ?? "")
-        );
-    };
+    const addItem = () => {
+        // Verifica si el título está vacío o solo contiene espacios
+        if (!newTitle || newTitle.trim() === "") {
+            Alert.alert("Campos requeridos", "Asegúrate de ingresar un nombre válido.");
+            return;
+        }
 
-    const saveItem = () => {
-        if (!newTitle || !selectedDate) return;
+        // Verifica que haya una fecha seleccionada
+        if (!selectedDate) {
+            Alert.alert("Fecha no seleccionada", "Por favor selecciona una fecha antes de guardar.");
+            return;
+        }
 
         const newItem: CalendarItem = {
-            title: newTitle,
+            title: newTitle.trim(),
             date: selectedDate,
             type: newType,
             hour: newType === "recordatorio" ? selectedHour : undefined,
@@ -135,7 +105,7 @@ const Calendar: React.FC = () => {
             category: newType === "recordatorio" ? selectedCategory : undefined,
         };
 
-        if (editingIndex !== null && editingIndex >= 0 && editingIndex < items.length) {
+        if (editingIndex !== null) {
             updateReminder(editingIndex, newItem);
         } else {
             addReminder(newItem);
@@ -153,11 +123,18 @@ const Calendar: React.FC = () => {
         setSelectedNotification("10 min antes");
         setSelectedCategory("inyeccion");
         setEditingIndex(null);
-        setModalAddVisible(false);
+        setModalEventVisible(false);
     };
 
     const scrollRef = useRef<ScrollView>(null);
     const [monthPositions, setMonthPositions] = useState<number[]>([]);
+
+    // Scroll al mes actual al cargar
+    useEffect(() => {
+        if (scrollRef.current && monthPositions.length === 12) {
+            scrollRef.current.scrollTo({ y: monthPositions[currentMonth], animated: false });
+        }
+    }, [monthPositions]);
 
     const renderMonth = (month: number, year: number) => {
         const firstDay = new Date(year, month, 1).getDay();
@@ -178,8 +155,8 @@ const Calendar: React.FC = () => {
             <View
                 key={`${year}-${month}`}
                 style={{ marginBottom: 40 }}
-                onLayout={(event) => {
-                    const y = event.nativeEvent.layout.y;
+                onLayout={(e) => {
+                    const y = e.nativeEvent.layout.y;
                     setMonthPositions((prev) => {
                         const copy = [...prev];
                         copy[month] = y;
@@ -187,28 +164,13 @@ const Calendar: React.FC = () => {
                     });
                 }}
             >
-                <Text
-                    style={{
-                        fontSize: 22,
-                        fontWeight: "bold",
-                        textAlign: "center",
-                        marginBottom: 10,
-                    }}
-                >
+                <Text style={{ fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 10 }}>
                     {formattedMonth}
                 </Text>
 
                 <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
                     {weekDays.map((d, i) => (
-                        <Text
-                            key={i}
-                            style={{
-                                fontWeight: "bold",
-                                width: 40,
-                                textAlign: "center",
-                                color: "#555",
-                            }}
-                        >
+                        <Text key={i} style={{ fontWeight: "bold", width: 40, textAlign: "center", color: "#555" }}>
                             {d}
                         </Text>
                     ))}
@@ -217,25 +179,13 @@ const Calendar: React.FC = () => {
                 <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
                     {daysArray.map((day, i) => {
                         if (!day)
-                            return (
-                                <View
-                                    key={i}
-                                    style={{
-                                        width: "14.2%",
-                                        borderWidth: 0.5,
-                                        borderColor: "#eee",
-                                        minHeight: 120,
-                                    }}
-                                />
-                            );
+                            return <View key={i} style={{ width: "14.2%", minHeight: 120 }} />;
 
                         const dateStr = `${year}-${month + 1}-${day}`;
                         const isToday =
                             day === today.getDate() &&
                             month === today.getMonth() &&
                             year === today.getFullYear();
-
-                        // FILTRAR ITEMS DE ESTE DÍA
                         const dayItems = items.filter((it) => it.date === dateStr);
 
                         return (
@@ -247,97 +197,74 @@ const Calendar: React.FC = () => {
                                     borderColor: "#eee",
                                     minHeight: 120,
                                     padding: 4,
-                                    borderRadius: isToday ? 6 : 0,
+                                    justifyContent: "flex-start",
+                                    alignItems: "center",
                                 }}
                             >
-                                <Text
-                                    style={{
-                                        fontSize: 14,
-                                        fontWeight: "bold",
-                                        textAlign: "center",
-                                        color: isToday ? "#fff" : "#000",
-                                        backgroundColor: isToday ? "#f03e3e" : "white",
-                                        borderRadius: 999,
-                                        height: 24,
-                                        width: 24,
-                                        lineHeight: 24,
-                                        textAlignVertical: "center",
-                                        alignSelf: "center",
-                                        marginBottom: 6,
-                                    }}
+                                <Text className={`fond-bold text-center rounded-full w-6 h-6 leading-6 self-center ${isToday 
+                                ? `bg-[#f03e3e] dark:bg-zinc-700 text-white` 
+                                : 'bg-white dark:bg-[#495057] text-black'}`}
                                 >
                                     {day}
                                 </Text>
 
-                                <TouchableOpacity
-                                    style={{
-                                        width: "100%",
-                                        alignItems: "center",
-                                        marginVertical: 4,
-                                    }}
-                                    onPress={() => {
-                                        setSelectedDate(dateStr);
-                                        if (dayItems.length > 0) {
-                                            setModalViewVisible(true);
-                                        } else {
-                                            setEditingIndex(null);
-                                            setModalAddVisible(true);
-                                        }
-                                    }}
-                                >
-                                    {dayItems.length > 0 ? (
+                                <View style={{ height: 6 }} />
+
+                                {dayItems.length > 0 ? (
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setSelectedDate(dateStr);
+                                            setModalDayVisible(true);
+                                        }}
+                                        style={{
+                                            alignSelf: "center",
+                                            marginTop: 5,
+                                            paddingHorizontal: 8,
+                                            paddingVertical: 6,
+                                            borderRadius: 6,
+                                            backgroundColor: "#F3FFEE",
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            borderWidth: 1,
+                                            borderColor: "#BBECA5",
+                                        }}
+                                    >
+                                        <Text style={{ fontSize: 12, fontWeight: "bold", marginRight: 6 }}>Ver</Text>
                                         <View
                                             style={{
-                                                alignSelf: "center",
-                                                paddingHorizontal: 8,
-                                                paddingVertical: 6,
-                                                borderRadius: 6,
-                                                backgroundColor: "#F3FFEE",
-                                                flexDirection: "row",
+                                                backgroundColor: "#4CAF50",
+                                                borderRadius: 10,
+                                                paddingHorizontal: 6,
+                                                paddingVertical: 2,
+                                                minWidth: 20,
                                                 alignItems: "center",
-                                                borderWidth: 1,
-                                                borderColor: "#BBECA5",
                                             }}
                                         >
-                                            <Text
-                                                style={{
-                                                    fontSize: 12,
-                                                    fontWeight: "bold",
-                                                    marginRight: 6,
-                                                }}
-                                            >
-                                                Ver
+                                            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 12 }}>
+                                                {dayItems.length}
                                             </Text>
-                                            <View
-                                                style={{
-                                                    backgroundColor: "#4CAF50",
-                                                    borderRadius: 10,
-                                                    paddingHorizontal: 6,
-                                                    paddingVertical: 2,
-                                                    minWidth: 20,
-                                                    alignItems: "center",
-                                                }}
-                                            >
-                                                <Text
-                                                    style={{
-                                                        color: "#fff",
-                                                        fontWeight: "bold",
-                                                        fontSize: 12,
-                                                    }}
-                                                >
-                                                    {dayItems.length}
-                                                </Text>
-                                            </View>
                                         </View>
-                                    ) : (
-                                        <View
-                                            style={{
-                                                height: 50, // área presionable grande
-                                                width: "100%",
-                                            }}
-                                        />
-                                    )}
-                                </TouchableOpacity>
+                                    </TouchableOpacity>
+                                ) : (
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setSelectedDate(dateStr);
+                                            setEditingIndex(null);
+                                            setNewTitle("");
+                                            setNewType("evento");
+                                            setModalEventVisible(true);
+                                        }}
+                                        style={{
+                                            width: "100%",
+                                            minHeight: 60,
+                                            marginTop: 5,
+                                            borderRadius: 6,
+                                            justifyContent: "center",
+                                            alignItems: "center",
+                                            backgroundColor: "transparent",
+                                        }}
+                                    />
+                                )}
                             </View>
                         );
                     })}
@@ -346,23 +273,12 @@ const Calendar: React.FC = () => {
         );
     };
 
-    useEffect(() => {
-        if (scrollRef.current && monthPositions[currentMonth] !== undefined) {
-            scrollRef.current.scrollTo({
-                y: monthPositions[currentMonth],
-                animated: false,
-            });
-        }
-    }, [monthPositions]);
-
     const eventsForSelectedDay = items.filter((it) => it.date === selectedDate);
-    const findItemIndex = (item: CalendarItem) => items.findIndex((it) => isSameItem(it, item));
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-            <Animated.View
-                style={[{ position: "absolute", top: 20, right: 20, zIndex: 10 }, bellAnimatedStyle]}
-            >
+        <View 
+        className="flex-1 bg-[#fff] dark:bg-[#495057]">
+            <Animated.View style={[{ position: "absolute", top: 20, right: 20, zIndex: 10 }, bellAnimatedStyle]}>
                 <Ionicons name="notifications-outline" size={40} color="#f03e3e" />
             </Animated.View>
 
@@ -370,170 +286,519 @@ const Calendar: React.FC = () => {
                 {Array.from({ length: 12 }, (_, i) => renderMonth(i, currentYear))}
             </ScrollView>
 
-            {/* MODAL 1: Ver eventos */}
-            {modalViewVisible && (
+            {modalDayVisible && selectedDate && (
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalBox}>
-                        <Text style={styles.modalTitle}>Eventos - {selectedDate}</Text>
+                    <View style={[styles.modalContainer, { width: "75%", maxHeight: "85%" }]}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                            <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+                                Eventos - {selectedDate}
+                            </Text>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setEditingIndex(null);
+                                        setNewTitle("");
+                                        setNewType("evento");
+                                        setModalEventVisible(true);
+                                        setModalDayVisible(false);
+                                    }}
+                                    style={{
+                                        padding: 8,
+                                        borderRadius: 8,
+                                        backgroundColor: "#4CAF50",
+                                        marginRight: 8,
+                                    }}
+                                >
+                                    <Ionicons name="add" size={20} color="#fff" />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setModalDayVisible(false)} style={{ padding: 8 }}>
+                                    <Ionicons name="close" size={22} color="#333" />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
 
-                        <ScrollView style={{ maxHeight: 300 }}>
+                        <ScrollView style={{ marginTop: 12 }}>
                             {eventsForSelectedDay.length === 0 ? (
-                                <Text style={{ textAlign: "center", marginTop: 20 }}>
-                                    No hay eventos ni recordatorios.
+                                <Text style={{ textAlign: "center", color: "#777", marginTop: 20 }}>
+                                    No hay eventos en este día.
                                 </Text>
                             ) : (
-                                eventsForSelectedDay.map((item, idx) => {
-                                    const globalIndex = findItemIndex(item);
-
+                                eventsForSelectedDay.map((it) => {
+                                    const realIndex = items.findIndex((item) => item === it);
                                     return (
                                         <View
-                                            key={idx}
+                                            key={realIndex}
                                             style={{
-                                                backgroundColor: "#f5f5f5",
-                                                padding: 10,
+                                                backgroundColor: "#fafafa",
+                                                padding: 12,
                                                 borderRadius: 8,
-                                                marginVertical: 5,
-                                                flexDirection: "row",
-                                                alignItems: "center",
-                                                justifyContent: "space-between",
+                                                marginBottom: 10,
+                                                borderWidth: 1,
+                                                borderColor: "#eee",
                                             }}
                                         >
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
-                                                {item.type === "recordatorio" && (
-                                                    <Text style={{ fontSize: 12, color: "#555" }}>
-                                                        {item.hour}:{item.minute?.toString().padStart(2, "0")}{" "}
-                                                        {item.ampm} - {item.category}
-                                                    </Text>
-                                                )}
-                                            </View>
+                                            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={{ fontWeight: "bold", fontSize: 15 }}>{it.title}</Text>
+                                                    {it.type === "recordatorio" ? (
+                                                        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
+                                                            <Text style={{ color: "#666" }}>
+                                                                Recordatorio - {it.hour}:{it.minute?.toString().padStart(2, "0")} {it.ampm}
+                                                            </Text>
+                                                            {it.notification && (
+                                                                <Text style={{ color: "#666", fontSize: 13, marginLeft: 8 }}>
+                                                                    ({it.notification})
+                                                                </Text>
+                                                            )}
+                                                            {it.category && (
+                                                                <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 8 }}>
+                                                                    <View
+                                                                        style={{
+                                                                            width: 10,
+                                                                            height: 10,
+                                                                            borderRadius: 5,
+                                                                            backgroundColor:
+                                                                                it.category === "inyeccion" ? "#4CAF50" :
+                                                                                    it.category === "pintura" ? "#F03E3E" :
+                                                                                        "#FFC107",
+                                                                            marginRight: 4,
+                                                                        }}
+                                                                    />
+                                                                    <Text style={{ color: "#666", fontSize: 13 }}>
+                                                                        {it.category === "inyeccion" ? "Inyección" :
+                                                                            it.category === "pintura" ? "Pintura" :
+                                                                                "Ensamble"}
+                                                                    </Text>
+                                                                </View>
+                                                            )}
+                                                        </View>
+                                                    ) : (
+                                                        <Text style={{ color: "#666", marginTop: 6 }}>Evento</Text>
+                                                    )}
+                                                </View>
 
-                                            <View style={{ flexDirection: "row" }}>
-                                                <TouchableOpacity
-                                                    onPress={() => {
-                                                        if (globalIndex === -1) return;
-                                                        setEditingIndex(globalIndex);
+                                                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                                    <TouchableOpacity
+                                                        onPress={() => {
+                                                            setEditingIndex(realIndex);
+                                                            setNewTitle(it.title);
+                                                            setNewType(it.type);
+                                                            setSelectedHour(it.hour ?? 1);
+                                                            setSelectedMinute(it.minute ?? 0);
+                                                            setSelectedAMPM(it.ampm ?? "AM");
+                                                            setSelectedNotification(it.notification ?? "10 min antes");
+                                                            setSelectedCategory(it.category ?? "inyeccion");
+                                                            setModalEventVisible(true);
+                                                            setModalDayVisible(false);
+                                                        }}
+                                                        style={{ marginRight: 8 }}
+                                                    >
+                                                        <Ionicons name="pencil" size={20} color="#333" />
+                                                    </TouchableOpacity>
 
-                                                        const it = items[globalIndex];
-                                                        setNewTitle(it.title);
-                                                        setNewType(it.type);
-                                                        setSelectedHour(it.hour ?? 1);
-                                                        setSelectedMinute(it.minute ?? 0);
-                                                        setSelectedAMPM(it.ampm ?? "AM");
-                                                        setSelectedNotification(it.notification ?? "10 min antes");
-                                                        setSelectedCategory(it.category ?? "inyeccion");
-
-                                                        setModalViewVisible(false);
-                                                        setModalAddVisible(true);
-                                                    }}
-                                                    style={{ marginRight: 10 }}
-                                                >
-                                                    <Feather name="edit-3" size={20} color="#333" />
-                                                </TouchableOpacity>
-
-                                                <TouchableOpacity
-                                                    onPress={() => {
-                                                        if (globalIndex === -1) return;
-                                                        deleteReminder(globalIndex);
-                                                    }}
-                                                >
-                                                    <Feather name="trash-2" size={20} color="#f03e3e" />
-                                                </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        onPress={() =>
+                                                            Alert.alert("Confirmar", "¿Eliminar este elemento?", [
+                                                                { text: "Cancelar", style: "cancel" },
+                                                                {
+                                                                    text: "Eliminar",
+                                                                    style: "destructive",
+                                                                    onPress: () => deleteReminder(realIndex),
+                                                                },
+                                                            ])
+                                                        }
+                                                    >
+                                                        <Ionicons name="trash" size={20} color="#F03E3E" />
+                                                    </TouchableOpacity>
+                                                </View>
                                             </View>
                                         </View>
                                     );
                                 })
                             )}
                         </ScrollView>
-
-                        <TouchableOpacity
-                            onPress={() => {
-                                setEditingIndex(null);
-                                setModalViewVisible(false);
-                                setModalAddVisible(true);
-                            }}
-                            style={styles.addButton}
-                        >
-                            <Ionicons name="add" size={28} color="white" />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity onPress={() => setModalViewVisible(false)} style={styles.closeButton}>
-                            <Text style={{ color: "#f03e3e", fontWeight: "bold" }}>Cerrar</Text>
-                        </TouchableOpacity>
                     </View>
                 </View>
             )}
 
-            {/* MODAL 2: Agregar/Editar */}
-            {modalAddVisible && (
+            {/* Modal agregar/editar */}
+            {modalEventVisible && (
                 <View style={styles.modalOverlay}>
-                    <ScrollView style={styles.modalBox}>
-                        <Text style={styles.modalTitle}>
+                    <ScrollView
+                        style={{
+                            backgroundColor: "#fff",
+                            borderRadius: 10,
+                            padding: 20,
+                            width: "90%",
+                            maxHeight: "80%",
+                        }}
+                        contentContainerStyle={{ paddingBottom: 40 }}
+                    >
+                        <Text
+                            style={{
+                                fontSize: 18,
+                                fontWeight: "bold",
+                                marginBottom: 10,
+                                textAlign: "center",
+                            }}
+                        >
                             {editingIndex !== null ? "Editar" : "Nuevo"}{" "}
                             {newType === "recordatorio" ? "Recordatorio" : "Evento"}
                         </Text>
 
-                        <Text style={{ marginBottom: 6, color: "#333" }}>Fecha: {selectedDate || "-"}</Text>
+                        <Text style={{ marginBottom: 6, color: "#333" }}>
+                            Fecha: {selectedDate || "-"}
+                        </Text>
 
-                        <TextInput style={styles.input} placeholder="Título" value={newTitle} onChangeText={setNewTitle} />
+                        <TextInput
+                            style={{
+                                borderWidth: 1,
+                                borderColor: "#ccc",
+                                padding: 10,
+                                borderRadius: 6,
+                                marginBottom: 10,
+                            }}
+                            placeholder="Título"
+                            value={newTitle}
+                            onChangeText={setNewTitle}
+                        />
 
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
+                        {/* Botones tipo */}
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                marginBottom: 10,
+                            }}
+                        >
                             <TouchableOpacity
                                 onPress={() => setNewType("evento")}
-                                style={[styles.toggleButton, { backgroundColor: newType === "evento" ? "#505050" : "#ddd" }]}
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: newType === "evento" ? "#505050" : "#ddd",
+                                    paddingVertical: 10,
+                                    borderRadius: 6,
+                                    marginRight: 5,
+                                    alignItems: "center",
+                                }}
                             >
                                 <Text style={{ color: "#fff", fontWeight: "bold" }}>Evento</Text>
                             </TouchableOpacity>
-
                             <TouchableOpacity
                                 onPress={() => setNewType("recordatorio")}
-                                style={[styles.toggleButton, { backgroundColor: newType === "recordatorio" ? "#505050" : "#ddd" }]}
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: newType === "recordatorio" ? "#505050" : "#ddd",
+                                    paddingVertical: 10,
+                                    borderRadius: 6,
+                                    marginLeft: 5,
+                                    alignItems: "center",
+                                }}
                             >
-                                <Text style={{ color: "#fff", fontWeight: "bold" }}>Recordatorio</Text>
+                                <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                                    Recordatorio
+                                </Text>
                             </TouchableOpacity>
                         </View>
 
                         {newType === "recordatorio" && (
-                            <>
-                                <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
-                                    <TextInput
-                                        placeholder="HH"
-                                        keyboardType="numeric"
-                                        value={String(selectedHour)}
-                                        onChangeText={(t) => setSelectedHour(Number(t))}
-                                        style={[styles.input, { flex: 1, marginRight: 5 }]}
-                                    />
-                                    <TextInput
-                                        placeholder="MM"
-                                        keyboardType="numeric"
-                                        value={String(selectedMinute)}
-                                        onChangeText={(t) => setSelectedMinute(Number(t))}
-                                        style={[styles.input, { flex: 1, marginRight: 5 }]}
-                                    />
-                                    <TouchableOpacity
-                                        onPress={() => setSelectedAMPM(selectedAMPM === "AM" ? "PM" : "AM")}
-                                        style={[styles.input, { flex: 1, justifyContent: "center", alignItems: "center" }]}
-                                    >
-                                        <Text>{selectedAMPM}</Text>
-                                    </TouchableOpacity>
+                            <View>
+                                {/* COMBOBOX: HORA */}
+                                <Text style={{ fontWeight: "bold", marginBottom: 6, marginTop: 10 }}>Hora:</Text>
+                                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                                    {/* Hora */}
+                                    <View style={{ flex: 1, marginRight: 5 }}>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                setShowHourList(!showHourList);
+                                                setShowMinuteList(false);
+                                                setShowNotifList(false);
+                                                setShowCatList(false);
+                                            }}
+                                            style={{
+                                                borderWidth: 1,
+                                                borderColor: "#ccc",
+                                                borderRadius: 6,
+                                                paddingVertical: 8,
+                                                paddingHorizontal: 10,
+                                                backgroundColor: "#fff",
+                                            }}
+                                        >
+                                            <Text>{selectedHour.toString().padStart(2, "0")}</Text>
+                                        </TouchableOpacity>
+
+                                        {showHourList && (
+                                            <ScrollView
+                                                style={{
+                                                    borderWidth: 1,
+                                                    borderColor: "#ccc",
+                                                    borderRadius: 6,
+                                                    backgroundColor: "#fff",
+                                                    position: "absolute",
+                                                    width: "100%",
+                                                    zIndex: 999,
+                                                    maxHeight: 150,
+                                                }}
+                                                nestedScrollEnabled={true}
+                                            >
+                                                {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                                                    <TouchableOpacity
+                                                        key={h}
+                                                        onPress={() => {
+                                                            setSelectedHour(h);
+                                                            setShowHourList(false);
+                                                        }}
+                                                        style={{
+                                                            paddingVertical: 8,
+                                                            paddingHorizontal: 10,
+                                                            borderBottomWidth: 1,
+                                                            borderBottomColor: "#eee",
+                                                        }}
+                                                    >
+                                                        <Text>{h.toString().padStart(2, "0")}</Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </ScrollView>
+                                        )}
+                                    </View>
+
+                                    {/* Minutos */}
+                                    <View style={{ flex: 1, marginRight: 5 }}>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                setShowMinuteList(!showMinuteList);
+                                                setShowHourList(false);
+                                                setShowNotifList(false);
+                                                setShowCatList(false);
+                                            }}
+                                            style={{
+                                                borderWidth: 1,
+                                                borderColor: "#ccc",
+                                                borderRadius: 6,
+                                                paddingVertical: 8,
+                                                paddingHorizontal: 10,
+                                                backgroundColor: "#fff",
+                                            }}
+                                        >
+                                            <Text>{selectedMinute.toString().padStart(2, "0")}</Text>
+                                        </TouchableOpacity>
+
+                                        {showMinuteList && (
+                                            <ScrollView
+                                                style={{
+                                                    borderWidth: 1,
+                                                    borderColor: "#ccc",
+                                                    borderRadius: 6,
+                                                    backgroundColor: "#fff",
+                                                    position: "absolute",
+                                                    width: "100%",
+                                                    zIndex: 999,
+                                                    maxHeight: 200,
+                                                }}
+                                                nestedScrollEnabled={true}
+                                            >
+                                                {Array.from({ length: 59 }, (_, i) => i + 1).map((m) => (
+                                                    <TouchableOpacity
+                                                        key={m}
+                                                        onPress={() => {
+                                                            setSelectedMinute(m);
+                                                            setShowMinuteList(false);
+                                                        }}
+                                                        style={{
+                                                            paddingVertical: 8,
+                                                            paddingHorizontal: 10,
+                                                            borderBottomWidth: 1,
+                                                            borderBottomColor: "#eee",
+                                                        }}
+                                                    >
+                                                        <Text>{m.toString().padStart(2, "0")}</Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </ScrollView>
+                                        )}
+                                    </View>
+
+                                    {/* AM/PM */}
+                                    <View style={{ flex: 1 }}>
+                                        <TouchableOpacity
+                                            onPress={() =>
+                                                setSelectedAMPM(selectedAMPM === "AM" ? "PM" : "AM")
+                                            }
+                                            style={{
+                                                borderWidth: 1,
+                                                borderColor: "#ccc",
+                                                borderRadius: 6,
+                                                paddingVertical: 8,
+                                                paddingHorizontal: 10,
+                                                backgroundColor: "#fff",
+                                                justifyContent: "center",
+                                                alignItems: "center",
+                                            }}
+                                        >
+                                            <Text>{selectedAMPM}</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
 
-                                <TextInput placeholder="Notificación" value={selectedNotification} onChangeText={setSelectedNotification} style={styles.input} />
-                                <TextInput placeholder="Categoría" value={selectedCategory} onChangeText={setSelectedCategory} style={styles.input} />
-                            </>
+                                {/* COMBOBOX: NOTIFICACIÓN */}
+                                <Text style={{ fontWeight: "bold", marginBottom: 6, marginTop: 10 }}>Notificación:</Text>
+                                <View>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setShowNotifList(!showNotifList);
+                                            setShowHourList(false);
+                                            setShowMinuteList(false);
+                                            setShowCatList(false);
+                                        }}
+                                        style={{
+                                            borderWidth: 1,
+                                            borderColor: "#ccc",
+                                            borderRadius: 6,
+                                            paddingVertical: 8,
+                                            paddingHorizontal: 10,
+                                            backgroundColor: "#fff",
+                                        }}
+                                    >
+                                        <Text>{selectedNotification}</Text>
+                                    </TouchableOpacity>
+
+                                    {showNotifList && (
+                                        <ScrollView
+                                            style={{
+                                                borderWidth: 1,
+                                                borderColor: "#ccc",
+                                                borderRadius: 6,
+                                                backgroundColor: "#fff",
+                                                position: "absolute",
+                                                width: "100%",
+                                                zIndex: 999,
+                                                maxHeight: 150,
+                                            }}
+                                            nestedScrollEnabled={true}
+                                        >
+                                            {["-", "10 min", "30 min", "1 hora"].map((opt) => (
+                                                <TouchableOpacity
+                                                    key={opt}
+                                                    onPress={() => {
+                                                        setSelectedNotification(opt);
+                                                        setShowNotifList(false);
+                                                    }}
+                                                    style={{
+                                                        paddingVertical: 8,
+                                                        paddingHorizontal: 10,
+                                                        borderBottomWidth: 1,
+                                                        borderBottomColor: "#eee",
+                                                    }}
+                                                >
+                                                    <Text>{opt}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </ScrollView>
+                                    )}
+                                </View>
+                                {/* COMBOBOX: CATEGORÍA */}
+                                <Text style={{ fontWeight: "bold", marginBottom: 6, marginTop: 10 }}>Área:</Text>
+                                <View>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setShowCatList(!showCatList);
+                                            setShowHourList(false);
+                                            setShowMinuteList(false);
+                                            setShowNotifList(false);
+                                        }}
+                                        style={{
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            borderWidth: 1,
+                                            borderColor: "#ccc",
+                                            borderRadius: 6,
+                                            paddingVertical: 8,
+                                            paddingHorizontal: 10,
+                                            backgroundColor: "#fff",
+                                        }}
+                                    >
+                                        {/* Puntito de color del valor seleccionado */}
+                                        <View
+                                            style={{
+                                                width: 10,
+                                                height: 10,
+                                                borderRadius: 5,
+                                                backgroundColor:
+                                                    selectedCategory === "inyeccion"
+                                                        ? "#4CAF50"
+                                                        : selectedCategory === "pintura"
+                                                            ? "#F03E3E"
+                                                            : "#FFC107",
+                                                marginRight: 8,
+                                            }}
+                                        />
+                                        <Text>{selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}</Text>
+                                    </TouchableOpacity>
+
+                                    {showCatList && (
+                                        <ScrollView
+                                            style={{
+                                                borderWidth: 1,
+                                                borderColor: "#ccc",
+                                                borderRadius: 6,
+                                                backgroundColor: "#fff",
+                                                position: "absolute",
+                                                width: "100%",
+                                                zIndex: 999,
+                                                maxHeight: 150,
+                                            }}
+                                            nestedScrollEnabled={true}
+                                        >
+                                            {[
+                                                { value: "inyeccion", label: "Inyección", color: "#4CAF50" },
+                                                { value: "pintura", label: "Pintura", color: "#F03E3E" },
+                                                { value: "ensamble", label: "Ensamble", color: "#FFC107" },
+                                            ].map((cat) => (
+                                                <TouchableOpacity
+                                                    key={cat.value}
+                                                    onPress={() => {
+                                                        setSelectedCategory(cat.value);
+                                                        setShowCatList(false);
+                                                    }}
+                                                    style={{
+                                                        flexDirection: "row",
+                                                        alignItems: "center",
+                                                        paddingVertical: 8,
+                                                        paddingHorizontal: 10,
+                                                        borderBottomWidth: 1,
+                                                        borderBottomColor: "#eee",
+                                                    }}
+                                                >
+                                                    <View
+                                                        style={{
+                                                            width: 10,
+                                                            height: 10,
+                                                            borderRadius: 5,
+                                                            backgroundColor: cat.color,
+                                                            marginRight: 8,
+                                                        }}
+                                                    />
+                                                    <Text>{cat.label}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </ScrollView>
+                                    )}
+                                </View>
+                            </View>
                         )}
 
-                        <TouchableOpacity onPress={saveItem} style={styles.saveButton}>
-                            <Text style={{ color: "#fff", fontWeight: "bold" }}>Guardar</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity onPress={resetForm} style={styles.closeButton}>
-                            <Text style={{ color: "#f03e3e", fontWeight: "bold" }}>Cancelar</Text>
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: "row", justifyContent: "space-evenly", marginTop: 20 }}>
+                            <TouchableOpacity onPress={resetForm} style={{ paddingVertical: 10, paddingHorizontal: 25, borderRadius: 8 }}>
+                                <Text style={{ color: "#9D0E0E", fontWeight: "bold" }}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={addItem} style={{ paddingVertical: 10, paddingHorizontal: 25, borderRadius: 8 }}>
+                                <Text style={{ color: "#257D55", fontWeight: "bold" }}>Guardar</Text>
+                            </TouchableOpacity>
+                        </View>
                     </ScrollView>
                 </View>
             )}
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -550,47 +815,36 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "rgba(0,0,0,0.4)",
     },
-    modalBox: {
+    modalContainer: {
         backgroundColor: "#fff",
-        borderRadius: 10,
+        borderRadius: 12,
         padding: 20,
-        width: "90%",
     },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: "bold",
-        marginBottom: 15,
-        textAlign: "center",
-    },
-    addButton: {
-        backgroundColor: "#4caf50",
-        borderRadius: 50,
-        alignSelf: "center",
-        padding: 10,
-        marginTop: 10,
-    },
-    closeButton: {
-        marginTop: 10,
-        alignSelf: "center",
-    },
-    input: {
+    label: { fontWeight: "bold", marginBottom: 6, marginTop: 10 },
+    row: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+    smallInput: {
         borderWidth: 1,
         borderColor: "#ccc",
-        borderRadius: 8,
-        padding: 8,
-        marginBottom: 10,
-    },
-    toggleButton: {
+        borderRadius: 6,
+        padding: 10,
         flex: 1,
-        padding: 10,
-        borderRadius: 8,
-        marginHorizontal: 5,
-        alignItems: "center",
+        marginRight: 5,
     },
-    saveButton: {
-        backgroundColor: "#505050",
+    ampmButton: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 6,
         padding: 10,
-        borderRadius: 8,
+        justifyContent: "center",
         alignItems: "center",
+        flex: 1,
+    },
+    notifOption: {
+        paddingVertical: 6,
+        paddingHorizontal: 20,
+        borderRadius: 6,
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: "#ccc",
     },
 });
