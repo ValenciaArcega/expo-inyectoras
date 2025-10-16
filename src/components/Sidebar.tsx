@@ -1,13 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { TouchableOpacity, View, StyleSheet, ScrollView } from "react-native";
 import { gs } from '@/src/utils/styles';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useFlow } from "../hooks/useFlow";
 
 
 const Sidebar = function () {
-  const go = useNavigation();
+  const { go, replace } = useFlow();
   return (
     <View style={styles.sidebar}
       className="!bg-[#e9ecef] dark:!bg-[#495057]">
@@ -15,37 +14,52 @@ const Sidebar = function () {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={gs.scroll}>
 
         <TouchableOpacity style={styles.iconButton}
-          onPress={() => go.navigate('ControlCenter')}>
+          onPress={() => {
+            replace.popToTop()
+            go.navigate('ControlCenter')
+          }}>
           <Ionicons name="home" size={24} className="text-black dark:text-white" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.iconButton}
-          onPress={() => go.navigate('Board')}>
+          onPress={() => go.navigate('LayoutSidebar', {
+            screen: 'Board'
+          })}>
           <Ionicons name="tablet-portrait-sharp" size={24} className="text-black dark:text-white" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.iconButton}
-          onPress={() => go.navigate('Calendar')}>
+          onPress={() => go.navigate('LayoutSidebar', {
+            screen: 'Calendar'
+          })}>
           <Ionicons name="calendar-outline" size={24} className="text-black dark:text-white" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.iconButton}
-          onPress={() => go.navigate('FileViewer')}>
+          onPress={() => go.navigate('LayoutSidebar', {
+            screen: 'FileViewer'
+          })}>
           <Ionicons name="documents" size={24} className="text-black dark:text-white" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.iconButton}
-          onPress={() => go.navigate('Variables')}>
+          onPress={() => go.navigate('LayoutSidebar', {
+            screen: 'Variables'
+          })}>
           <Ionicons name="construct" size={24} className="text-black dark:text-white" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.iconButton}
-          onPress={() => go.navigate('Dashboard')}>
+          onPress={() => go.navigate('LayoutSidebar', {
+            screen: 'Dashboard'
+          })}>
           <Ionicons name="bar-chart-sharp" size={24} className="text-black dark:text-white" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.iconButton}
-          onPress={() => go.navigate('Andon')}>
+          onPress={() => go.navigate('LayoutSidebar', {
+            screen: 'Andon'
+          })}>
           <Ionicons name="storefront-sharp" size={24} className="text-black dark:text-white" />
         </TouchableOpacity>
 

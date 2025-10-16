@@ -1,15 +1,9 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
+import { BtnControlCenter } from "../types/elements";
 
-type BtnControlCenter = {
-    id: number,
-    title: string,
-    subtitle: string,
-    route: string
-    icon: keyof typeof Ionicons.glyphMap,
-    iconColor: string,
-}
+
 
 export const buttonsData: BtnControlCenter[] = [
     {

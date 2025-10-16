@@ -7,6 +7,8 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS, } from
 import { buttonsData } from '@/src/constants/control-center-btns';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { gs } from '@/src/utils/styles';
+import { DraggableButtonProps } from '@/src/types/elements';
+
 
 const COLUMNS = 3;
 const SPACING = 12;
@@ -20,19 +22,23 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 const BUTTON_WIDTH =
     (SCREEN_WIDTH - (COLUMNS - 1) * SPACING - PADDING_HORIZONTAL * 2) / COLUMNS;
 
-const DraggableButton = ({ btn, index, positions, buttonHeight, setIsVisible }) => {
+
+
+const DraggableButton = ({ btn, index, positions, buttonHeight, }: DraggableButtonProps) => {
     const go = useNavigation();
     const offset = useSharedValue({ x: 0, y: 0 });
     const start = useSharedValue({ x: 0, y: 0 });
 
     const handlePress = () => {
         try {
-            if (btn.route) {
-                go.navigate(btn.route);
-            }
+            // @ts-ignoreignore-ts
+            go.navigate("LayoutSidebar", {
+                screen: btn.route
+            });
+            // @ts-ignoreignore-ts
             if (btn.id === 5) go.navigate('FileViewer');
 
-            setIsVisible(false)
+            // setIsVisible(false)
         } catch (err) {
             console.warn("Error during navigation:", err);
         }
@@ -52,7 +58,7 @@ const DraggableButton = ({ btn, index, positions, buttonHeight, setIsVisible }) 
                 Math.abs(offset.value.y - start.value.y) > TAP_SENSITIVITY;
 
             if (!moved && btn.route) {
-                 runOnJS(handlePress)();
+                runOnJS(handlePress)();
                 return;
             }
 
@@ -62,7 +68,7 @@ const DraggableButton = ({ btn, index, positions, buttonHeight, setIsVisible }) 
             let closestIndex = -1;
             let minDist = Infinity;
 
-            positions.forEach((pos, i) => {
+            positions.forEach((pos: any, i: number) => {
                 if (i !== index) {
                     const dist = Math.hypot(
                         finalX - pos.value.x,
@@ -91,7 +97,6 @@ const DraggableButton = ({ btn, index, positions, buttonHeight, setIsVisible }) 
         width: BUTTON_WIDTH,
         height: buttonHeight,
         borderRadius: 18,
-        backgroundColor: btn.color,
         justifyContent: 'center',
         alignItems: 'center',
         transform: [
@@ -122,7 +127,7 @@ const DraggableButton = ({ btn, index, positions, buttonHeight, setIsVisible }) 
 
 const ControlCenter = () => {
     const insets = useSafeAreaInsets();
-    const [isVisible, setIsVisible]= useState (true)
+    const go = useNavigation();
 
     const ROWS = Math.ceil(buttonsData.length / COLUMNS);
     const verticalSpacing = (ROWS - 1) * SPACING;
@@ -137,21 +142,35 @@ const ControlCenter = () => {
 
         })
     );
-    const fechaActual = new Date();
-  const fechaFormateada = fechaActual.toLocaleDateString(); 
-  const horaFormateada = fechaActual.toLocaleTimeString();   
+    
+    const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    setCurrentDate(new Date());
+    const intervalId = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60000);
+    return () => clearInterval(intervalId);
+  }, []);
+
 
     return (
-        <Modal visible={isVisible} supportedOrientations={['landscape']} >
-            <View
+        
+        <View
             className="bg-[#f2f2f7] dark:bg-[#343a40] flex-1 "
             style={{ paddingHorizontal: PADDING_HORIZONTAL }}
         >
             <View
-            className='w-[20%] flex-wrap'>
-                <Text className='text-4xl font-bold tracking-tight'>  {fechaFormateada}  </Text>
-                <Text className='text-4xl font-bold tracking-tight'> {horaFormateada}  </Text>
+                className='w-[50%] flex-direction: flex-row-reverse '>
+                <Text className='text-2xl font-bold tracking-tight text-white'>  {currentDate.toLocaleDateString()} </Text>
+                <Text className='text-2xl font-bold tracking-tight text-white'> {currentDate.toLocaleTimeString()} </Text>                
             </View>
+            <TouchableOpacity
+                        onPress={() => go.navigate('Notification')}
+            >
+                <Ionicons name="notifications-outline"  size={30} className='text-red-700' />
+                </TouchableOpacity>            
+
             <ScrollView contentContainerStyle={gs.scroll}>
 
                 <View style={{ flex: 1, minHeight: SCREEN_HEIGHT }}>
@@ -162,13 +181,13 @@ const ControlCenter = () => {
                             index={i}
                             positions={positions}
                             buttonHeight={BUTTON_HEIGHT}
-                            setIsVisible={setIsVisible}
+                        
                         />
                     ))}
                 </View>
             </ScrollView>
         </View>
-        </Modal>
+        
 
     );
 };
