@@ -142,34 +142,46 @@ const ControlCenter = () => {
 
         })
     );
-    
+
     const [currentDate, setCurrentDate] = useState(new Date());
 
-  useEffect(() => {
-    setCurrentDate(new Date());
-    const intervalId = setInterval(() => {
-      setCurrentDate(new Date());
-    }, 60000);
-    return () => clearInterval(intervalId);
-  }, []);
+    useEffect(() => {
+        setCurrentDate(new Date());
+        const intervalId = setInterval(() => {
+            setCurrentDate(new Date());
+        }, 60000);
+        return () => clearInterval(intervalId);
+    }, []);
 
 
     return (
-        
+
         <View
             className="bg-[#f2f2f7] dark:bg-[#343a40] flex-1 "
             style={{ paddingHorizontal: PADDING_HORIZONTAL }}
         >
-            <View
-                className='w-[50%] flex-direction: flex-row-reverse '>
-                <Text className='text-2xl font-bold tracking-tight text-white'>  {currentDate.toLocaleDateString()} </Text>
-                <Text className='text-2xl font-bold tracking-tight text-white'> {currentDate.toLocaleTimeString()} </Text>                
+            <View className="w-full flex-row justify-between items-center">
+                {/* Campana al inicio */}
+                <TouchableOpacity onPress={() => go.navigate('Notification')}>
+                    <Ionicons name="notifications-outline" size={30} className="text-red-700" />
+                </TouchableOpacity>
+
+                {/* Hora y fecha al final */}
+                <View className="flex-row items-center space-x-2">
+                    <Text className="text-2xl font-bold tracking-tight text-black dark:text-white">
+                        {currentDate.toLocaleTimeString()}
+                    </Text>
+                    <Text className="text-2xl font-bold tracking-tight text-black dark:text-white">
+                        {currentDate.toLocaleDateString()}
+                    </Text>
+                </View>
             </View>
-            <TouchableOpacity
-                        onPress={() => go.navigate('Notification')}
+
+            {/* <TouchableOpacity
+                // onPress={() => go.navigate('Notification')}
             >
-                <Ionicons name="notifications-outline"  size={30} className='text-red-700' />
-                </TouchableOpacity>            
+                <Ionicons name="notifications-outline" size={30} className='text-red-700' />
+            </TouchableOpacity> */}
 
             <ScrollView contentContainerStyle={gs.scroll}>
 
@@ -181,13 +193,13 @@ const ControlCenter = () => {
                             index={i}
                             positions={positions}
                             buttonHeight={BUTTON_HEIGHT}
-                        
+
                         />
                     ))}
                 </View>
             </ScrollView>
         </View>
-        
+
 
     );
 };

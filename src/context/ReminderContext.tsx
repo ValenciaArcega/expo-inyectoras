@@ -112,7 +112,7 @@ export const ReminderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     blinkInterval.current = setInterval(() => {
       fondoParpadeo.value = on ? 1 : 0;
       on = !on;
-    }, 500);
+    }, 300);
 
     // Animación campana
     bellScale.value = withSpring(1.5, { damping: 2, stiffness: 150 }, () => {
@@ -195,7 +195,7 @@ export const ReminderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       {children}
 
       {alertActive && activeReminder && (
-        <Modal transparent visible animationType="fade" onRequestClose={stopAlert}>
+        <Modal supportedOrientations={["landscape"]} transparent visible animationType="fade" onRequestClose={stopAlert}>
           <Animated.View style={[fondoParpadeanteStyle, { flex: 1, justifyContent: "center", alignItems: "center" }]}>
             <View
               style={{
@@ -210,12 +210,17 @@ export const ReminderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             >
               <Text style={{ fontSize: 22, fontWeight: "bold" }}>{activeReminder.title}</Text>
               <Text style={{ marginTop: 10 }}>
-                {activeReminder.hour}:{activeReminder.minute?.toString().padStart(2, "0")} {activeReminder.ampm}
-              </Text>
-              <Text style={{ marginTop: 5, color: "#666" }}>
-                Alerta terminará en: {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, "0")}
+                {activeReminder.hour?.toString().padStart(2, "0")}:
+                {activeReminder.minute?.toString().padStart(2, "0")} {activeReminder.ampm}
               </Text>
 
+              <Text style={{ marginTop: 5, color: "#666" }}>
+                Alerta terminará en: {Math.floor(countdown / 60).toString().padStart(2, "0")}:
+                {(countdown % 60).toString().padStart(2, "0")}
+              </Text>
+              <Text style={{ marginTop: 10, color: "#444", fontSize: 13, textAlign: "center" }}>
+                Si presionas "Posponer", esta alerta se volverá a mostrar en 10 minutos.
+              </Text>
               <View style={{ flexDirection: "row", marginTop: 20 }}>
                 <TouchableOpacity
                   style={{
