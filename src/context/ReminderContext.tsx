@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, useRef } from "r
 import { Modal, Text, TouchableOpacity, View } from "react-native";
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring } from "react-native-reanimated";
 import { mmkv } from "@/src/utils/mmkv";
-import { Ionicons } from "@expo/vector-icons";
 
 export type CalendarItem = {
   title: string;
@@ -32,9 +31,6 @@ export const ReminderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [countdown, setCountdown] = useState(0);
 
   const fondoParpadeo = useSharedValue(0);
-  const bellScale = useSharedValue(1);
-  const bellRotate = useSharedValue(0);
-  const bellShake = useSharedValue(0);
   const blinkInterval = useRef<number | null>(null);
   const alertTimeout = useRef<number | null>(null);
   const countdownInterval = useRef<number | null>(null);
@@ -43,14 +39,6 @@ export const ReminderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     backgroundColor: fondoParpadeo.value
       ? "rgba(255,0,0,0.4)"
       : "rgba(0,0,0,0.5)",
-  }));
-
-  const bellAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: bellScale.value },
-      { rotate: `${bellRotate.value}deg` },
-      { translateX: bellShake.value },
-    ],
   }));
 
   // Cargar items desde MMKV
@@ -113,22 +101,6 @@ export const ReminderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       fondoParpadeo.value = on ? 1 : 0;
       on = !on;
     }, 300);
-
-    // Animación campana
-    bellScale.value = withSpring(1.5, { damping: 2, stiffness: 150 }, () => {
-      bellScale.value = withSpring(1);
-    });
-    bellRotate.value = withSequence(
-      withSpring(15, { damping: 3, stiffness: 100 }),
-      withSpring(-10, { damping: 3, stiffness: 100 }),
-      withSpring(0, { damping: 3, stiffness: 100 })
-    );
-    bellShake.value = withSequence(
-      withSpring(-8, { damping: 2, stiffness: 120 }),
-      withSpring(8, { damping: 2, stiffness: 120 }),
-      withSpring(-5, { damping: 2, stiffness: 120 }),
-      withSpring(0, { damping: 2, stiffness: 120 })
-    );
 
     // Contador regresivo
     if (countdownInterval.current) clearInterval(countdownInterval.current);

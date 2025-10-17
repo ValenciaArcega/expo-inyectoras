@@ -153,7 +153,6 @@ const ControlCenter = () => {
         return () => clearInterval(intervalId);
     }, []);
 
-
     return (
 
         <View

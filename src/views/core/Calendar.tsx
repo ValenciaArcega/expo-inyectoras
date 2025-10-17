@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Alert, } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert, } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, cancelAnimation, } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useReminder, CalendarItem } from "@/src/context/ReminderContext";
 
 const Calendar: React.FC = () => {
@@ -26,60 +26,12 @@ const Calendar: React.FC = () => {
     const [showMinuteList, setShowMinuteList] = useState(false);
     const [showNotifList, setShowNotifList] = useState(false);
     const [showCatList, setShowCatList] = useState(false);
+    const [menuVisible, setMenuVisible] = useState(false);
+    // const [selectedDept, setSelectedDept] = useState<string>("");
+    const [showPersonal, setshowPersonal] = useState<string>("");
 
-
-    // Animación campana
-    const [alertActive, setAlertActive] = useState(false);
-    const bellScale = useSharedValue(1);
-    const bellRotate = useSharedValue(0);
-    const bellShake = useSharedValue(0);
-
-    const bellAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [
-            { scale: bellScale.value },
-            { rotate: `${bellRotate.value}deg` },
-            { translateX: bellShake.value },
-        ],
-    }));
-
-    const triggerBell = () => {
-        bellScale.value = withSequence(withSpring(1.5), withSpring(1));
-        bellRotate.value = withSequence(withSpring(15), withSpring(-10), withSpring(0));
-        bellShake.value = withSequence(withSpring(-8), withSpring(8), withSpring(0));
-    };
-
-    const stopBell = () => {
-        cancelAnimation(bellScale);
-        cancelAnimation(bellRotate);
-        cancelAnimation(bellShake);
-        bellScale.value = 1;
-        bellRotate.value = 0;
-        bellShake.value = 0;
-    };
-
-    useEffect(() => {
-        if (alertActive) triggerBell();
-        else stopBell();
-    }, [alertActive]);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const now = new Date();
-            const hasReminderNow = items.some((item) => {
-                if (item.type !== "recordatorio") return false;
-                const [hour, minute] = [item.hour ?? 0, item.minute ?? 0];
-                let reminderHour = item.ampm === "PM" && hour < 12 ? hour + 12 : hour;
-                reminderHour = item.ampm === "AM" && hour === 12 ? 0 : reminderHour;
-                return (
-                    item.date === `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}` &&
-                    reminderHour === now.getHours() &&
-                    minute === now.getMinutes()
-                );
-            });
-            setAlertActive(hasReminderNow);
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [items]);
+    // const [showDeptList, setShowDeptList] = useState(false);
+    const [showPersonalList, setshowPersonalList] = useState(false);
 
     const addItem = () => {
         if (!newTitle || newTitle.trim() === "") {
@@ -167,10 +119,9 @@ const Calendar: React.FC = () => {
                     });
                 }}
             >
-                <Text style={{ fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 10 }}>
+                <Text className="text-[22px] font-bold text-center mb-2">
                     {formattedMonth}
                 </Text>
-
                 <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
                     {weekDays.map((d, i) => (
                         <Text key={i} style={{ fontWeight: "bold", width: 40, textAlign: "center", color: "#000000" }}>
@@ -179,7 +130,7 @@ const Calendar: React.FC = () => {
                     ))}
                 </View>
 
-                <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                <View className="flex-row flex-wrap">
                     {daysArray.map((day, i) => {
                         if (!day)
                             return <View key={i} style={{ width: "14.2%", minHeight: 120 }} />;
@@ -279,17 +230,20 @@ const Calendar: React.FC = () => {
 
     return (
         <View className="flex-1 bg-[#fff] dark:bg-[#495057]">
-            <Animated.View style={[{ position: "absolute", right: 20, zIndex: 10 }, bellAnimatedStyle]}>
-                <Ionicons name="menu" size={40} color="#000000" />
+            <Animated.View style={[{ right: 20, position: "absolute", top: 20, zIndex: 10 }]}>
+                <TouchableOpacity onPress={() => setMenuVisible(true)}>
+                    <Ionicons name="menu-outline" size={40} color="#000000" />
+                </TouchableOpacity>
             </Animated.View>
+
             <ScrollView ref={scrollRef}>
                 {Array.from({ length: 12 }, (_, i) => renderMonth(i, currentYear))}
             </ScrollView>
 
-            {/* Modal de día */}
+            {/* Modal de lista */}
             {modalDayVisible && selectedDate && (
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContainer, { width: "75%", maxHeight: "85%" }]}>
+                <View className="absolute inset-0 justify-center items-center bg-[rgba(0,0,0,0.4)]">
+                    <View className="bg-white rounded-xl p-5 w-3/4 max-h-[85%]">
                         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                             <Text style={{ fontSize: 20, fontWeight: "bold" }}>
                                 Evento - {selectedDate ? formatDate(selectedDate) : "-"}
@@ -300,7 +254,7 @@ const Calendar: React.FC = () => {
                                     onPress={() => {
                                         setEditingIndex(null);
                                         setNewTitle("");
-                                        setModalVisible(true); // aquí abre modal de agregar
+                                        setModalVisible(true); // abre modal de agregar
                                         setModalDayVisible(false);
                                     }}
                                     style={{
@@ -329,14 +283,7 @@ const Calendar: React.FC = () => {
                                     return (
                                         <View
                                             key={realIndex}
-                                            style={{
-                                                backgroundColor: "#fafafa",
-                                                padding: 12,
-                                                borderRadius: 8,
-                                                marginBottom: 10,
-                                                borderWidth: 1,
-                                                borderColor: "#eee",
-                                            }}
+                                            className="bg-[#fafafa] p-3 rounded-md mb-2.5 border border-[#eee]"
                                         >
                                             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                                                 <View style={{ flex: 1 }}>
@@ -358,10 +305,11 @@ const Calendar: React.FC = () => {
                                                                         height: 10,
                                                                         borderRadius: 5,
                                                                         backgroundColor:
-                                                                            it.category === "inyeccion" ? "#4CAF50" :
-                                                                                it.category === "pintura" ? "#F03E3E" :
-                                                                                    "#FFC107",
-                                                                        marginRight: 4,
+                                                                            it.category === "inyeccion" ? "#94d82d" :
+                                                                                it.category === "pintura" ? "#9684B8" :
+                                                                                    it.category === "ensamble" ? "#FFD166" :
+                                                                                        it.category === "sistemas" ? "#15aabf" :
+                                                                                            "#666" // color por defecto
                                                                     }}
                                                                 />
                                                                 <Text style={{ color: "#666", fontSize: 13 }}>
@@ -419,19 +367,18 @@ const Calendar: React.FC = () => {
                     </View>
                 </View>
             )}
-
             {/* Modal agregar/editar */}
             {modalVisible && (
-                <View style={styles.modalOverlay}>
+                <View className="absolute inset-0 justify-center items-center bg-[rgba(0,0,0,0.4)]">
                     <ScrollView
                         style={{
                             backgroundColor: "#fff",
                             borderRadius: 10,
                             padding: 20,
-                            width: "90%",
+                            width: "80%",
                             maxHeight: "80%",
                         }}
-                        contentContainerStyle={{ paddingBottom: 40 }}
+                        contentContainerStyle={{ paddingBottom: 60 }}
                     >
                         <Text
                             style={{
@@ -671,24 +618,27 @@ const Calendar: React.FC = () => {
                                     backgroundColor: "#fff",
                                 }}
                             >
-                                <View
-                                    style={{
-                                        width: 10,
-                                        height: 10,
-                                        borderRadius: 5,
-                                        backgroundColor:
-                                            selectedCategory === "inyeccion"
-                                                ? "#4CAF50"
-                                                : selectedCategory === "pintura"
-                                                    ? "#F03E3E"
-                                                    : selectedCategory === "ensamble"
-                                                        ? "#FFC107"
-                                                        : selectedCategory === "sistemas"
-                                                            ? "#3E76F0"
-                                                            : "#666",
-                                        marginRight: 8,
-                                    }}
-                                />
+                                {/* Solo muestra el círculo si no es "-" */}
+                                {selectedCategory !== "-" && (
+                                    <View
+                                        style={{
+                                            width: 10,
+                                            height: 10,
+                                            borderRadius: 5,
+                                            backgroundColor:
+                                                selectedCategory === "inyeccion"
+                                                    ? "#94d82d"
+                                                    : selectedCategory === "pintura"
+                                                        ? "#9684B8"
+                                                        : selectedCategory === "ensamble"
+                                                            ? "#FFD166"
+                                                            : selectedCategory === "sistemas"
+                                                                ? "#15aabf"
+                                                                : "#666", // color por defecto
+                                            marginRight: 8,
+                                        }}
+                                    />
+                                )}
                                 <Text>{selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}</Text>
                             </TouchableOpacity>
                             {showCatList && (
@@ -701,15 +651,18 @@ const Calendar: React.FC = () => {
                                         position: "absolute",
                                         width: "100%",
                                         zIndex: 999,
-                                        maxHeight: 150,
+                                        maxHeight: 250,
                                     }}
                                     nestedScrollEnabled={true}
                                 >
+
                                     {[
-                                        { value: "inyeccion", label: "Inyección", color: "#4CAF50" },
-                                        { value: "pintura", label: "Pintura", color: "#F03E3E" },
-                                        { value: "ensamble", label: "Ensamble", color: "#FFC107" },
-                                        { value: "sistemas", label: "Sistemas", color: "#3E76F0" },
+                                        { value: "-", label: "-" },
+                                        { value: "inyeccion", label: "Inyección", color: "#94d82d" },
+                                        { value: "pintura", label: "Pintura", color: "#9684B8" },
+                                        { value: "ensamble", label: "Ensamble", color: "#FFD166" },
+                                        { value: "sistemas", label: "Sistemas", color: "#15aabf" },
+
                                     ].map((cat) => (
                                         <TouchableOpacity
                                             key={cat.value}
@@ -736,6 +689,71 @@ const Calendar: React.FC = () => {
                                                 }}
                                             />
                                             <Text>{cat.label}</Text>
+
+                                        </TouchableOpacity>
+
+                                    ))}
+                                </ScrollView>
+                            )}
+                        </View>
+                        {/* COMBOBOX: DEPARTAMENTO */}
+                        <Text style={{ fontWeight: "bold", marginBottom: 6, marginTop: 10 }}>Personal Solicitado:</Text>
+                        <View>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setshowPersonalList(!showPersonalList);
+                                    setShowCatList(false);
+                                    setShowHourList(false);
+                                    setShowMinuteList(false);
+                                    setShowNotifList(false);
+                                }}
+                                style={{
+                                    borderWidth: 1,
+                                    borderColor: "#ccc",
+                                    borderRadius: 6,
+                                    paddingVertical: 8,
+                                    paddingHorizontal: 10,
+                                    backgroundColor: "#fff",
+                                }}
+                            >
+                                <Text>
+                                    {showPersonal
+                                        ? showPersonal.charAt(0).toUpperCase() + showPersonal.slice(1).replace("_", " ")
+                                        : ""}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {showPersonalList && (
+                                <ScrollView
+                                    style={{
+                                        borderWidth: 1,
+                                        borderColor: "#ccc",
+                                        borderRadius: 6,
+                                        backgroundColor: "#fff",
+                                        position: "absolute",
+                                        width: "100%",
+                                        zIndex: 999,
+                                        maxHeight: 250,
+                                    }}
+                                    nestedScrollEnabled={true}
+                                >
+                                    {[
+                                        "-", "Gerencia", "Administración", "Contaduría", "Operación de maquinaria", "Sistemas", "Recursos humanos", "Producción",
+                                    ].map((dept) => (
+                                        <TouchableOpacity
+                                            key={dept}
+                                            onPress={() => {
+                                                setshowPersonal(dept);
+                                                setshowPersonalList(false);
+                                            }}
+                                            style={{
+                                                paddingVertical: 8,
+                                                paddingHorizontal: 10,
+                                                borderBottomWidth: 1,
+                                                borderBottomColor: "#eee",
+                                            }}
+                                        >
+                                            <Text>{dept}</Text>
                                         </TouchableOpacity>
                                     ))}
                                 </ScrollView>
@@ -750,7 +768,69 @@ const Calendar: React.FC = () => {
                                 <Text style={{ color: "#257D55", fontWeight: "bold" }}>Guardar</Text>
                             </TouchableOpacity>
                         </View>
+
                     </ScrollView>
+                </View>
+            )}
+            {menuVisible && (
+                <View className="absolute inset-0 bg-[rgba(0,0,0,0.4)] flex-row justify-start z-[100]">
+                    {/* Fondo clickeable para cerrar menú */}
+                    <TouchableOpacity
+                        style={{ flex: 1 }}
+                        onPress={() => setMenuVisible(false)}
+                    />
+
+                    {/* Contenedor del menú */}
+                    <Animated.View
+                        style={{
+                            width: 250,
+                            backgroundColor: "#fff",
+                            padding: 20,
+                            shadowColor: "#000",
+                            shadowOpacity: 0.3,
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowRadius: 5,
+                            elevation: 8,
+                            borderTopRightRadius: 12,
+                            borderBottomRightRadius: 12,
+                        }}
+                    >
+                        {/* Header del menú */}
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                            <Text style={{ fontSize: 18, fontWeight: "bold" }}>Menú</Text>
+                            <TouchableOpacity onPress={() => setMenuVisible(false)}>
+                                <Ionicons name="close" size={28} color="#000" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Items del menú */}
+                        <ScrollView>
+                            {[
+                                { icon: "calendar-outline", text: "Mes" },
+                                { icon: "calendar-outline", text: "Semana" },
+                                { icon: "calendar-outline", text: "Día" },
+                            ].map((item, i) => (
+                                <TouchableOpacity
+                                    key={i}
+                                    style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        paddingVertical: 10,
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: "#eee",
+                                    }}
+                                >
+                                    <Ionicons
+                                        name={item.icon as keyof typeof Ionicons.glyphMap}
+                                        size={22}
+                                        color="#000"
+                                        style={{ marginRight: 12 }}
+                                    />
+                                    <Text style={{ fontSize: 16 }}>{item.text}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </Animated.View>
                 </View>
             )}
         </View>
@@ -758,21 +838,3 @@ const Calendar: React.FC = () => {
 };
 
 export default Calendar;
-
-const styles = StyleSheet.create({
-    modalOverlay: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.4)",
-    },
-    modalContainer: {
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 20,
-    },
-});
