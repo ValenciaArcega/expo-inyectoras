@@ -9,6 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { gs } from '@/src/utils/styles';
 import { DraggableButtonProps } from '@/src/types/elements';
 
+// import { buttonsData } from "@/src/constants/control-center-btns";
+// import { useFlow } from "@/src/hooks/useFlow";
+// import { gs } from "@/src/utils/styles";
+// import { Ionicons } from "@expo/vector-icons";
+// import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+
 
 const COLUMNS = 3;
 const SPACING = 12;
@@ -202,5 +208,55 @@ const ControlCenter = () => {
 
     );
 };
-
 export default ControlCenter;
+
+// const ControlCenter = function () {
+//     const { go } = useFlow();
+
+//     return <View className="bg-[#f2f2f7] dark:bg-[#343a40] flex-1 ">
+//         <View className="w-full flex-row justify-between items-center">
+//             {/* Campana al inicio */}
+//             <TouchableOpacity onPress={() => go.navigate('Notification')}>
+//                 <Ionicons name="notifications-outline" size={30} className="text-red-700" />
+//             </TouchableOpacity>
+
+//             {/* Hora y fecha al final */}
+//             {/* <View className="flex-row items-center space-x-2">
+//                 <Text className="text-2xl font-bold tracking-tight text-black dark:text-white">
+//                     {currentDate.toLocaleTimeString()}
+//                 </Text>
+//                 <Text className="text-2xl font-bold tracking-tight text-black dark:text-white">
+//                     {currentDate.toLocaleDateString()}
+//                 </Text>
+//             </View> */}
+//         </View>
+
+//         {/* <TouchableOpacity
+//                 // onPress={() => go.navigate('Notification')}
+//             >
+//                 <Ionicons name="notifications-outline" size={30} className='text-red-700' />
+//             </TouchableOpacity> */}
+
+//         <ScrollView contentContainerStyle={gs.scroll}>
+//             <View className="flex-row gap-12 flex-wrap justify-between">
+//                 {buttonsData.map((btn, i) => (<TouchableOpacity
+//                     onPress={() => go.navigate('LayoutSidebar', {
+//                         screen: btn.route
+//                     })}
+//                     className=" !bg-white dark:!bg-[#495057] rounded-2xl items-center justify-center w-[23%] p-2"
+//                 >
+//                     <Ionicons name={btn.icon} size={48} className={btn.iconColor} />
+//                     <Text className="text-black dark:text-white font-bold text-lg mt-2">
+//                         {btn.title}
+//                     </Text>
+//                     <Text className="text-gray-600 dark:text-gray-400 text-center">
+//                         {btn.subtitle}
+//                     </Text>
+//                 </TouchableOpacity>
+//                 ))}
+//             </View>
+//         </ScrollView>
+//     </View>
+// }
+
+// export default ControlCenter;

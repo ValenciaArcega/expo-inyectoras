@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert, } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator, Image, } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated from "react-native-reanimated";
 import { useReminder, CalendarItem } from "@/src/context/ReminderContext";
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, Easing, } from "react-native-reanimated";
 
 const Calendar: React.FC = () => {
     const { addReminder, updateReminder, deleteReminder, items } = useReminder();
@@ -27,8 +27,14 @@ const Calendar: React.FC = () => {
     const [showNotifList, setShowNotifList] = useState(false);
     const [showCatList, setShowCatList] = useState(false);
     const [menuVisible, setMenuVisible] = useState(false);
-    // const [selectedDept, setSelectedDept] = useState<string>("");
     const [showPersonal, setshowPersonal] = useState<string>("");
+    const [isLoading, setIsLoading] = useState(true)
+    const scale = useSharedValue(1);
+
+
+    useEffect(function () {
+        sugarLoader()
+    }, [])
 
     // const [showDeptList, setShowDeptList] = useState(false);
     const [showPersonalList, setshowPersonalList] = useState(false);
@@ -84,7 +90,20 @@ const Calendar: React.FC = () => {
         const year = date.getFullYear();
         return `${day}/${month}/${year}`;
     };
+    useEffect(() => {
+        scale.value = withRepeat(
+            withSequence(
+                withTiming(1.2, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+                withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) })
+            ),
+            -1,
+            true
+        );
+    }, []);
 
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
     useEffect(() => {
         if (scrollRef.current && monthPositions.length === 12) {
             scrollRef.current.scrollTo({ y: monthPositions[currentMonth], animated: false });
@@ -225,6 +244,26 @@ const Calendar: React.FC = () => {
             </View>
         );
     };
+
+    const sugarLoader = async function () {
+        await new Promise(r => setTimeout(r, 2000));
+        setIsLoading(false);
+    }
+
+    if (isLoading) return <View className="flex-1 justify-center items-center">
+        <Animated.Image
+            source={require("@/assets/images/golden/calendar.png")}
+            className="w-28 h-28"
+            style={animatedStyle}
+        />
+
+        <Text className="italic mt-4 font-semibold text-lg">
+            Cargando Eventos...</Text>
+        <Text className="text-gray-400 text-center mt-1 mb-5 w-72 text-sm">
+            “Sincronizando tus eventos con el calendario para mantenerlo actualizado…”
+        </Text>
+        <ActivityIndicator />
+    </View>
 
     const remindersForSelectedDay = items.filter((it) => it.date === selectedDate && it.type === "recordatorio");
 
